@@ -41,3 +41,24 @@ def next_request_id(conn: sqlite3.Connection) -> str:
 
 def next_artifact_id(conn: sqlite3.Connection, kind: str) -> str:
     return _next(conn, ARTIFACT_PREFIX[kind])
+
+
+def _next_in_conditions(conn: sqlite3.Connection, key: str, prefix: str, count: int) -> list[str]:
+    """在所有 Condition_Record 快照中查找已用编号（Evidence、缺陷保存在 points_json 里）。"""
+    rows = conn.execute(
+        "SELECT j.value AS id FROM condition_versions cv, json_tree(cv.points_json) j "
+        "WHERE j.key = ? AND j.value GLOB ?",
+        (key, f"{prefix}-[0-9]*"),
+    ).fetchall()
+    numbers = [int(r["id"][len(prefix) + 1:]) for r in rows if r["id"][len(prefix) + 1:].isdigit()]
+    start = max(numbers, default=0) + 1
+    return [f"{prefix}-{n:04d}" for n in range(start, start + count)]
+
+
+def next_evidence_ids(conn: sqlite3.Connection, count: int) -> list[str]:
+    """运行时 Evidence 编号（EV-0001 起）；种子编号如 EV-AM007-BACK-1 不参与。"""
+    return _next_in_conditions(conn, "evidence_id", "EV", count)
+
+
+def next_defect_ids(conn: sqlite3.Connection, count: int) -> list[str]:
+    return _next_in_conditions(conn, "defect_id", "DF", count)

@@ -76,6 +76,44 @@ class EvidenceSource(StrEnum):
         return {"INTAKE": "入库检测", "INSPECTION": "人工检查"}[self.value]
 
 
+class RequestStatus(StrEnum):
+    """Buyer_Request 状态机（design §3.2）。"""
+
+    SUBMITTED = "SUBMITTED"
+    EVALUATED = "EVALUATED"
+    WAITING_FOR_INSPECTION = "WAITING_FOR_INSPECTION"
+    INSPECTION_RESULT_RECORDED = "INSPECTION_RESULT_RECORDED"
+    EVIDENCE_READY = "EVIDENCE_READY"
+    OFFERED = "OFFERED"
+    NEEDS_REEVALUATION = "NEEDS_REEVALUATION"
+    RESERVED = "RESERVED"
+    DELIVERED = "DELIVERED"
+    DECLINED = "DECLINED"
+    NO_MATCH = "NO_MATCH"
+
+    @property
+    def label(self) -> str:
+        return {
+            "SUBMITTED": "已提交",
+            "EVALUATED": "已完成匹配评估",
+            "WAITING_FOR_INSPECTION": "等待人工检查",
+            "INSPECTION_RESULT_RECORDED": "已录入检查结果",
+            "EVIDENCE_READY": "证据已整理",
+            "OFFERED": "已报价，等待买家确认",
+            "NEEDS_REEVALUATION": "需要重新评估",
+            "RESERVED": "已预留",
+            "DELIVERED": "已交付",
+            "DECLINED": "买家已拒绝报价",
+            "NO_MATCH": "没有合适商品",
+        }[self.value]
+
+
+class InspectionConclusion(StrEnum):
+    OK = "OK"
+    DEFECT = "DEFECT"
+    INCONCLUSIVE = "INCONCLUSIVE"
+
+
 class MatchResult(StrEnum):
     QUALIFIED = "QUALIFIED"
     NEEDS_INSPECTION = "NEEDS_INSPECTION"

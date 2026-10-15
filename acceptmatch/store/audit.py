@@ -100,7 +100,7 @@ def list_events(
     request_id: str | None = None,
     event_type: str | None = None,
 ) -> list[AuditEvent]:
-    """按时间顺序（epoch、seq）列出事件。item_id 同时匹配 related_ids 中出现的商品。"""
+    """按时间顺序（epoch、seq）列出事件。item_id、request_id 同时匹配 related_ids 中出现的编号。"""
     clauses, params = [], []
     if epoch is not None:
         clauses.append("epoch = ?")
@@ -109,8 +109,8 @@ def list_events(
         clauses.append("(item_id = ? OR EXISTS (SELECT 1 FROM json_each(related_ids_json) WHERE value = ?))")
         params.extend([item_id, item_id])
     if request_id is not None:
-        clauses.append("request_id = ?")
-        params.append(request_id)
+        clauses.append("(request_id = ? OR EXISTS (SELECT 1 FROM json_each(related_ids_json) WHERE value = ?))")
+        params.extend([request_id, request_id])
     if event_type is not None:
         clauses.append("event_type = ?")
         params.append(event_type)

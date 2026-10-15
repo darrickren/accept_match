@@ -28,8 +28,9 @@ class AgentMode(str, Enum):
 
 @dataclass(frozen=True)
 class Settings:
-    aws_region: str
-    bedrock_model_id: str
+    # 模型和区域只从环境变量读取，没有内置默认值；未设置时为 None，只有 bedrock 模式才需要
+    aws_region: str | None
+    bedrock_model_id: str | None
     bedrock_connect_timeout_s: int
     bedrock_read_timeout_s: int
     agent_run_timeout_s: int
@@ -39,10 +40,20 @@ class Settings:
     db_path: Path
     seed_dir: Path
 
+    def require_bedrock(self) -> tuple[str, str]:
+        """返回 (model_id, region)；缺少任何一项时抛出 ConfigError，列出需要设置的环境变量。"""
+        missing = []
+        if not self.bedrock_model_id:
+            missing.append("BEDROCK_MODEL_ID")
+        if not self.aws_region:
+            missing.append("AWS_REGION（或 AWS_DEFAULT_REGION）")
+        if missing:
+            raise ConfigError("bedrock 模式需要设置环境变量：" + "、".join(missing))
+        assert self.bedrock_model_id and self.aws_region
+        return self.bedrock_model_id, self.aws_region
+
 
 _DEFAULTS: dict[str, str] = {
-    "AWS_REGION": "us-west-2",
-    "BEDROCK_MODEL_ID": "global.anthropic.claude-sonnet-4-6",
     "BEDROCK_CONNECT_TIMEOUT_S": "5",
     "BEDROCK_READ_TIMEOUT_S": "60",
     "AGENT_RUN_TIMEOUT_S": "120",
@@ -105,9 +116,10 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     """从环境变量加载并校验配置。env 为 None 时读取 os.environ。"""
     env = os.environ if env is None else env
     db_raw = env.get("DB_PATH", "").strip()
+    region = env.get("AWS_REGION", "").strip() or env.get("AWS_DEFAULT_REGION", "").strip() or None
     return Settings(
-        aws_region=_get(env, "AWS_REGION"),
-        bedrock_model_id=_get(env, "BEDROCK_MODEL_ID"),
+        aws_region=region,
+        bedrock_model_id=env.get("BEDROCK_MODEL_ID", "").strip() or None,
         bedrock_connect_timeout_s=_positive_int(env, "BEDROCK_CONNECT_TIMEOUT_S"),
         bedrock_read_timeout_s=_positive_int(env, "BEDROCK_READ_TIMEOUT_S"),
         agent_run_timeout_s=_positive_int(env, "AGENT_RUN_TIMEOUT_S"),

@@ -38,6 +38,8 @@ class EconomicsInputs:
     B: Decimal | None
     pass_quote: Decimal | None
     options: tuple[NoInspectionChoice, ...]
+    # 调用方发现的其他输入问题（例如参数中的待检查部位与商品的未核实部位不一致）
+    input_problems: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -70,7 +72,7 @@ class InspectionDecisionResult:
 
 
 def _validate(inputs: EconomicsInputs) -> list[str]:
-    problems: list[str] = []
+    problems: list[str] = list(inputs.input_problems)
     for name in ("C", "p", "H", "R_fail", "B", "pass_quote"):
         value = getattr(inputs, name)
         if value is None:

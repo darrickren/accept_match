@@ -29,7 +29,10 @@ def connect(db_path: Path | str) -> sqlite3.Connection:
     """打开连接（自动提交模式，事务由 write_tx 显式控制），并确保表结构存在。"""
     if str(db_path) != ":memory:":
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path), timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None)
+    # Strands 在工作线程中执行工具，所以允许跨线程使用同一连接；
+    # 一次 Agent 运行内工具按顺序执行（SequentialToolExecutor），不会并发使用同一连接
+    conn = sqlite3.connect(str(db_path), timeout=BUSY_TIMEOUT_MS / 1000, isolation_level=None,
+                           check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")

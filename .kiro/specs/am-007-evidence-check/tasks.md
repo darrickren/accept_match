@@ -131,23 +131,35 @@ P0 的 6 张表：
   - [x]* 4.4 存储测试：连续两次重置后状态哈希相同；同一商品的第二个 `ACTIVE` 预留被唯一索引拒绝；预算不能写成负数
     - _需求：1.6、10.6_
 
-- [ ] 5. 工具层与服务
-  - [ ] 5.1 编写统一返回结构、前置条件函数和 `allowed_next_actions`（design §6.1、§6.4），工具执行和下一步计算共用同一组前置条件
+- [x] 5. 工具层与服务
+  - 实际做法：
+    - 文件：`tools/envelope.py`（返回结构、`ToolCode`、`Actor`、`Rejection`）、`tools/state.py`（请求状态读取和 `plan()`）、`tools/runner.py`（一次调用一个事务）、`tools/runtime.py`、`tools/agent_tools.py`、`tools/human_ops.py`、`ui/messages.py`
+    - `plan()` 是唯一的下一步规则：`allowed_next_actions` 由它生成，Agent 工具在事务内用 `require_allowed()` 校验调用是否与 `plan()` 完全一致
+    - 被拒时回滚全部业务写入，单独追加一条 `OPERATION_REJECTED` 审计；未预期异常返回 `INTERNAL_ERROR`，工具不向调用方抛异常
+    - 新增工具层原因码：`EVALUATION_STALE`、`DECISION_NOT_FOUND`、`REQUEST_NOT_FOUND`、`TASK_NOT_FOUND`、`TASK_NOT_OPEN`、`UNKNOWN_BUYER`、`ACTOR_NOT_ALLOWED`、`CONFIRMATION_NOT_FROM_BUYER`、`QUOTE_NOT_FOUND`、`QUOTE_NOT_ACTIVE`、`SEED_CHANGED`
+    - 人工操作校验操作者类型：只有 buyer 能提交需求和确认、拒绝报价；只有 inspector 能提交检查结果。确认预留不在 Agent 工具表中
+    - 经济判断的决定键包含预算版本，预算变化后旧判定自动失效（`DECISION_STALE`）
+    - 证据整理后商品如果发生变化，下一步改为重新评估，按旧证据报价会被拒（`EVALUATION_STALE`）
+    - 重新评估时，旧的 `ACTIVE` 报价一律失效
+    - 运行时新增的 Evidence 和缺陷编号为 `EV-0001`、`DF-0001` 起；`INCONCLUSIVE` 的证据引用只记在任务结果中，部位保持 UNKNOWN
+    - 审计按请求查询时，同时匹配 `related_ids`（一条检查结果可以关联多个请求）
+    - 领域层补充 `EconomicsInputs.input_problems`：参数中的待检查部位与商品的未核实部位不一致时，判定为 `ECONOMICS_INPUT_INVALID`
+  - [x] 5.1 编写统一返回结构、前置条件函数和 `allowed_next_actions`（design §6.1、§6.4），工具执行和下一步计算共用同一组前置条件
     - _需求：12.2、12.5_
-  - [ ] 5.2 编写 7 个 Agent 工具：`get_request_status`、`evaluate_request`、`decide_inspection`、`create_inspection_task`、`build_evidence_package`、`generate_quote`、`finalize_no_match`
+  - [x] 5.2 编写 7 个 Agent 工具：`get_request_status`、`evaluate_request`、`decide_inspection`、`create_inspection_task`、`build_evidence_package`、`generate_quote`、`finalize_no_match`
     - 每个工具在事务内重新校验前置条件
     - 被拒时业务状态不变，单独写一条拒绝审计
     - 按自然键幂等重放
     - `create_inspection_task` 在事务内重新检查 `C ≤ B`，然后扣预算；关联已有任务时不扣
     - _需求：3、4.1、4.11、4.13、5.1–5.6、7.1–7.5、8.1–8.5、9.1–9.3、12.3、12.5_
-  - [ ] 5.3 编写人工操作：`submit_buyer_request`、`submit_inspection_result`、`confirm_reservation`、`decline_quote`
+  - [x] 5.3 编写人工操作：`submit_buyer_request`、`submit_inspection_result`、`confirm_reservation`、`decline_quote`
     - `submit_buyer_request` 检查部位冲突并回显请求
     - `submit_inspection_result` 校验 Tag_Code、证据引用，处理 `INCONCLUSIVE`，写入新版本，商品保持 `AVAILABLE`
     - `confirm_reservation` 依次校验报价归属、商品与报价对应、缺陷清单和金额是否逐项确认、版本、可售状态；因版本变化或不可售被拒时，请求改为 `NEEDS_REEVALUATION`
     - _需求：2.1–2.4、6.1–6.3、6.7、6.8、10.1–10.7_
-  - [ ] 5.4 编写面向买家的原因码消息模板，模板中不包含经济参数
+  - [x] 5.4 编写面向买家的原因码消息模板，模板中不包含经济参数
     - _需求：4.15、7.4、12.7_
-  - [ ]* 5.5 工具测试
+  - [x]* 5.5 工具测试
     - 每个前置条件对应的拒绝原因码
     - 被拒的调用前后业务表状态哈希相同
     - 重放不会重复扣预算，也不会重复建任务
@@ -155,24 +167,35 @@ P0 的 6 张表：
     - 对应 design §11.1 的属性 4、7、8、9
     - _需求：10、12.3_
 
-- [ ] 6. Agent 编排
-  - [ ] 6.1 编写 Orchestrator
+- [x] 6. Agent 编排
+  - 实际做法：
+    - 文件：`agent/orchestrator.py`（运行管理、守卫、`ScriptedDriver`）、`agent/strands_driver.py`（`build_bedrock_model`、7 个 Strands 工具、`StrandsDriver`）、`agent/guards.py`（参数模型、数值守卫）、`agent/prompts.py`、`agent/flow.py`（人工操作后继续）；测试用模型替身 `tests/fakes.py`
+    - 模型编号和区域只从环境变量读取：`BEDROCK_MODEL_ID`、`AWS_REGION`（没有时用 `AWS_DEFAULT_REGION`），不再有内置默认值；缺少时 bedrock 模式返回 `CONFIG_ERROR`，不写入任何数据（design §7.1 中的默认值待任务 13 同步删除）
+    - 一次运行在没有 Agent 可做的动作时结束（等待检查员 / 等待买家 / 终态）；人工操作成功后由 `flow.continue_after()` 启动新运行
+    - 没有可做的动作或运行已停止时，工具设置 Strands 的 `stop_event_loop`，不会再多发一次模型调用（通过路径共 8 次模型调用，对应 8 次工具调用）
+    - 守卫在调用工具前先用与工具相同的前置条件检查是否在 `allowed_next_actions` 中；工具在事务内仍会再查一次。新增守卫原因码 `ACTION_NOT_ALLOWED`（请求编号不属于本次运行）、`RUN_HALTED`
+    - 每次调用写一条 `AGENT_TOOL_CALL` 审计，包含参数、原始理由、经过数值守卫的理由和完整结果；运行另有 `AGENT_RUN_STARTED` / `AGENT_RUN_ENDED` / `AGENT_RUN_REFUSED`
+    - P0 先实现轻量暂停：运行以 `FAILED_BEDROCK`、`TIMEOUT` 或 `GUARD_STOPPED` 结束后，同一请求的新运行会被拒（`RUN_HALTED`），直到以 `resume=True` 恢复。暂停期间阻止人工操作、同一请求只允许一个运行中的 Agent，留到任务 10
+    - 运行记录如实标注驱动：脚本模式标为"离线脚本编排（非 Bedrock）"，替身模型标为"Strands + FakeModel（非 Bedrock）"，只有 BedrockModel 标为"Strands + Amazon Bedrock"
+    - SQLite 连接改为允许跨线程使用（Strands 在工作线程中执行工具；一次运行内工具按顺序执行）
+    - 尚未用真实 Bedrock 验证：本机没有设置 `BEDROCK_MODEL_ID`、`AWS_REGION`，也没有 AWS 配置文件。已有带 `bedrock` 标记的测试，设置 `RUN_BEDROCK_TESTS=1` 和上述环境变量后运行
+  - [x] 6.1 编写 Orchestrator
     - 按 design §7.2 构建 `BedrockModel` 和 `Agent`（顺序执行器、`retry_strategy=None`、超时配置）
     - 每次运行用工厂函数生成绑定 `run_id` 的工具
     - 系统提示按 design §7.3
     - 写审计 `AGENT_RUN_STARTED` / `AGENT_RUN_ENDED`
     - _需求：12.1、12.6、12.8、13.3_
-  - [ ] 6.2 编写工具守卫
+  - [x] 6.2 编写工具守卫
     - 记录 `rationale`
     - 用 Pydantic 校验参数
     - 同一运行内不允许以相同参数重复被拒绝的调用
     - 限制工具调用次数和运行时长
     - 对 Agent 文本做数值守卫（design §7.7）
     - _需求：12.4、12.7、13.3_
-  - [ ] 6.3 编写 `ScriptedAgent`，总是执行 `allowed_next_actions` 的第一项；通过 `AGENT_MODE=scripted` 启用，界面上标注
-  - [ ] 6.4 Bedrock 异常处理（P0 版本）：捕获异常，记录 `AGENT_RUN_ENDED`（失败原因），界面提示错误；已提交的操作保留，不自动重试
+  - [x] 6.3 编写 `ScriptedAgent`，总是执行 `allowed_next_actions` 的第一项；通过 `AGENT_MODE=scripted` 启用，界面上标注
+  - [x] 6.4 Bedrock 异常处理（P0 版本）：捕获异常，记录 `AGENT_RUN_ENDED`（失败原因），界面提示错误；已提交的操作保留，不自动重试
     - _需求：12.9（部分，完整实现见任务 10）_
-  - [ ]* 6.5 场景测试（`ScriptedAgent`，不调用 Bedrock）
+  - [x]* 6.5 场景测试（`ScriptedAgent`，不调用 Bedrock）
     - 通过路径：一直到 `RESERVED`，B 从 20.00 变为 12.00，报价 108.00
     - 失败路径：`NO_MATCH`，十件商品的原因都列出，AM-007 保持 `AVAILABLE`
     - 两条路径中，每个工具调用都有带理由的审计记录

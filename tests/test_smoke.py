@@ -25,8 +25,10 @@ def test_dependencies_importable():
 
 def test_defaults():
     s = load_settings({})
-    assert s.aws_region == "us-west-2"
-    assert s.bedrock_model_id == "global.anthropic.claude-sonnet-4-6"
+    # 模型和区域没有内置默认值
+    assert s.aws_region is None and s.bedrock_model_id is None
+    with pytest.raises(ConfigError, match="BEDROCK_MODEL_ID"):
+        s.require_bedrock()
     assert s.bedrock_connect_timeout_s == 5
     assert s.bedrock_read_timeout_s == 60
     assert s.agent_run_timeout_s == 120
@@ -35,6 +37,15 @@ def test_defaults():
     assert s.agent_mode is AgentMode.BEDROCK
     assert s.db_path == DEFAULT_DB_PATH
     assert s.seed_dir == ALLOWED_SEED_ROOT.resolve()
+
+
+def test_bedrock_settings_come_from_env_only():
+    with pytest.raises(ConfigError, match="AWS_REGION"):
+        load_settings({"BEDROCK_MODEL_ID": "model-from-env"}).require_bedrock()
+    s = load_settings({"BEDROCK_MODEL_ID": "model-from-env", "AWS_DEFAULT_REGION": "region-from-env"})
+    assert s.require_bedrock() == ("model-from-env", "region-from-env")
+    s = load_settings({"BEDROCK_MODEL_ID": " m ", "AWS_REGION": "r1", "AWS_DEFAULT_REGION": "r2"})
+    assert s.require_bedrock() == ("m", "r1")  # AWS_REGION 优先
 
 
 def test_overrides():

@@ -2,7 +2,19 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
+
+
+def pytest_collection_modifyitems(config, items):
+    """带 bedrock 标记的测试需要真实凭证，只有设置 RUN_BEDROCK_TESTS=1 时才运行。"""
+    if os.environ.get("RUN_BEDROCK_TESTS") == "1":
+        return
+    skip = pytest.mark.skip(reason="需要真实 Bedrock 凭证；设置 RUN_BEDROCK_TESTS=1 以及 BEDROCK_MODEL_ID、AWS_REGION 后运行")
+    for item in items:
+        if "bedrock" in item.keywords:
+            item.add_marker(skip)
 
 from acceptmatch.domain.models import BuyerRequestSpec, ItemSnapshot
 from acceptmatch.domain.pricing import PriceRules
