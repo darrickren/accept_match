@@ -1,0 +1,8 @@
+# 只在本机监听：MVP 没有身份认证，不要暴露到网络。
+[server]
+address = "localhost"
+port = 8501
+headless = true
+
+[browser]
+gatherUsageStats = false

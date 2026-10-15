@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "dataset_id": "acceptmatch-mvp-synthetic",
+    "version": 1,
+    "notice": "全部为合成数据，仅用于 AcceptMatch MVP 演示，与任何真实客户、订单或商品无关。",
+    "synthetic": true
+  },
+  "products": [
+    {"product_id": "SYN-BAG-A", "name": "合成手提包 A", "base_price": "120.00", "currency": "CAD", "synthetic": true},
+    {"product_id": "SYN-BAG-B", "name": "合成手提包 B", "base_price": "150.00", "currency": "CAD", "synthetic": true}
+  ],
+  "price_rules": {
+    "discount_by_severity": {"MINOR": "0.10", "MODERATE": "0.25", "SEVERE": "0.40"},
+    "floor_ratio": "0.50",
+    "synthetic": true
+  },
+  "inspection_methods": [
+    {"point": "FRONT", "method": "在标准光源下目视检查正面是否有划痕、污渍、凹陷", "synthetic": true},
+    {"point": "BACK", "method": "在标准光源下目视检查背面是否有划痕、污渍、凹陷", "synthetic": true},
+    {"point": "ZIPPER", "method": "完整开合一次，检查是否卡滞", "synthetic": true}
+  ],
+  "buyers": [
+    {"buyer_id": "B-DEMO-01", "label": "演示买家", "synthetic": true},
+    {"buyer_id": "B-DEMO-02", "label": "背景买家（持有 AM-006 的预留）", "synthetic": true}
+  ],
+  "demo_request": {
+    "buyer_id": "B-DEMO-01",
+    "product_id": "SYN-BAG-A",
+    "accepted_defects": [
+      {"point": "BACK", "defect_type": "SCRATCH", "max_severity": "MINOR"}
+    ],
+    "required_conditions": ["FRONT", "ZIPPER"],
+    "synthetic": true
+  },
+  "items": [
+    {
+      "item_id": "AM-001", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-K3P9", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM001-FRONT-1", "type": "SCRATCH", "severity": "MINOR", "evidence_ids": ["EV-AM001-FRONT-1"]}
+        ]},
+        "BACK": {"status": "OK", "evidence_ids": ["EV-AM001-BACK-1"]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM001-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM001-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:00:00-04:00", "photo_ref": "synthetic://photo/AM-001/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM001-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:00:00-04:00", "photo_ref": "synthetic://photo/AM-001/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM001-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:00:00-04:00", "photo_ref": "synthetic://photo/AM-001/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-002", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-7XQ2", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM002-FRONT-1"]},
+        "BACK": {"status": "OK", "evidence_ids": ["EV-AM002-BACK-1"]},
+        "ZIPPER": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM002-ZIPPER-1", "type": "JAM", "severity": "MODERATE", "evidence_ids": ["EV-AM002-ZIPPER-1"]}
+        ]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM002-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:10:00-04:00", "photo_ref": "synthetic://photo/AM-002/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM002-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:10:00-04:00", "photo_ref": "synthetic://photo/AM-002/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM002-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:10:00-04:00", "photo_ref": "synthetic://photo/AM-002/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-003", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-M8D4", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM003-FRONT-1"]},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM003-BACK-1", "type": "STAIN", "severity": "MINOR", "evidence_ids": ["EV-AM003-BACK-1"]}
+        ]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM003-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM003-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:20:00-04:00", "photo_ref": "synthetic://photo/AM-003/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM003-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:20:00-04:00", "photo_ref": "synthetic://photo/AM-003/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM003-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:20:00-04:00", "photo_ref": "synthetic://photo/AM-003/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-004", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-2RVN", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM004-FRONT-1"]},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM004-BACK-1", "type": "SCRATCH", "severity": "MODERATE", "evidence_ids": ["EV-AM004-BACK-1"]}
+        ]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM004-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM004-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:30:00-04:00", "photo_ref": "synthetic://photo/AM-004/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM004-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:30:00-04:00", "photo_ref": "synthetic://photo/AM-004/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM004-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:30:00-04:00", "photo_ref": "synthetic://photo/AM-004/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-005", "product_id": "SYN-BAG-B", "tag_code": "SYN-T-W6HJ", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM005-FRONT-1"]},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM005-BACK-1", "type": "SCRATCH", "severity": "MINOR", "evidence_ids": ["EV-AM005-BACK-1"]}
+        ]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM005-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM005-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:40:00-04:00", "photo_ref": "synthetic://photo/AM-005/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM005-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:40:00-04:00", "photo_ref": "synthetic://photo/AM-005/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM005-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:40:00-04:00", "photo_ref": "synthetic://photo/AM-005/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-006", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-9CFL", "item_status": "RESERVED",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM006-FRONT-1"]},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM006-BACK-1", "type": "SCRATCH", "severity": "MINOR", "evidence_ids": ["EV-AM006-BACK-1"]}
+        ]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM006-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM006-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:50:00-04:00", "photo_ref": "synthetic://photo/AM-006/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM006-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:50:00-04:00", "photo_ref": "synthetic://photo/AM-006/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM006-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T10:50:00-04:00", "photo_ref": "synthetic://photo/AM-006/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-007", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-Q5ZT", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM007-FRONT-1"]},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM007-BACK-1", "type": "SCRATCH", "severity": "MINOR", "evidence_ids": ["EV-AM007-BACK-1"]}
+        ]},
+        "ZIPPER": {"status": "UNKNOWN"}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM007-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:00:00-04:00", "photo_ref": "synthetic://photo/AM-007/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM007-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:00:00-04:00", "photo_ref": "synthetic://photo/AM-007/back-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-008", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-H1BE", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "UNKNOWN"},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM008-BACK-1", "type": "DENT", "severity": "MODERATE", "evidence_ids": ["EV-AM008-BACK-1"]}
+        ]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM008-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM008-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:10:00-04:00", "photo_ref": "synthetic://photo/AM-008/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM008-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:10:00-04:00", "photo_ref": "synthetic://photo/AM-008/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-009", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-D7YA", "item_status": "INTAKE",
+      "points": {
+        "FRONT": {"status": "UNKNOWN"},
+        "BACK": {"status": "UNKNOWN"},
+        "ZIPPER": {"status": "UNKNOWN"}
+      },
+      "evidence": [],
+      "synthetic": true
+    },
+    {
+      "item_id": "AM-010", "product_id": "SYN-BAG-A", "tag_code": "SYN-T-6NUG", "item_status": "AVAILABLE",
+      "points": {
+        "FRONT": {"status": "OK", "evidence_ids": ["EV-AM010-FRONT-1"]},
+        "BACK": {"status": "DEFECT", "defects": [
+          {"defect_id": "DF-AM010-BACK-1", "type": "SCRATCH", "severity": "MINOR", "evidence_ids": ["EV-AM010-BACK-1"]},
+          {"defect_id": "DF-AM010-BACK-2", "type": "STAIN", "severity": "MINOR", "evidence_ids": ["EV-AM010-BACK-2"]}
+        ]},
+        "ZIPPER": {"status": "OK", "evidence_ids": ["EV-AM010-ZIPPER-1"]}
+      },
+      "evidence": [
+        {"evidence_id": "EV-AM010-FRONT-1", "point": "FRONT", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:30:00-04:00", "photo_ref": "synthetic://photo/AM-010/front-1", "synthetic": true},
+        {"evidence_id": "EV-AM010-BACK-1", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:30:00-04:00", "photo_ref": "synthetic://photo/AM-010/back-1", "synthetic": true},
+        {"evidence_id": "EV-AM010-BACK-2", "point": "BACK", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:30:00-04:00", "photo_ref": "synthetic://photo/AM-010/back-2", "synthetic": true},
+        {"evidence_id": "EV-AM010-ZIPPER-1", "point": "ZIPPER", "source": "INTAKE", "inspector_id": "SYN-INSPECTOR-01", "recorded_at": "2026-10-01T11:30:00-04:00", "photo_ref": "synthetic://photo/AM-010/zipper-1", "synthetic": true}
+      ],
+      "synthetic": true
+    }
+  ],
+  "initial_reservations": [
+    {"reservation_id": "RSV-SEED-01", "item_id": "AM-006", "buyer_id": "B-DEMO-02", "synthetic": true}
+  ]
+}

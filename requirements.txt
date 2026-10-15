@@ -1,0 +1,11 @@
+# AcceptMatch MVP 直接依赖（精确版本，2026-10-15 解析）
+# 安装：uv pip install --python .venv/bin/python -r requirements.txt
+strands-agents==1.61.0
+streamlit==1.66.0
+pydantic==2.14.1
+boto3==1.43.114
+botocore==1.43.114
+
+# 测试
+pytest==9.1.1
+hypothesis==6.169.4

@@ -1,0 +1,26 @@
+{
+  "synthetic": true,
+  "notice": "全部为合成经济参数，仅用于演示检查前的经济判断，不来自真实数据，也不由 Agent 或模型估计。",
+  "base": {
+    "budget_initial": "20.00",
+    "items": {
+      "AM-007": {
+        "inspection_points": ["ZIPPER"],
+        "C": "8.00",
+        "p": "0.80",
+        "H": "10.00",
+        "R_fail": "40.00",
+        "no_inspection_options": [
+          {"kind": "LIQUIDATE_AS_IS", "label": "按现状清仓（拉链未核实）", "net": "45.00"},
+          {"kind": "RETURN_TO_VENDOR", "label": "退回供应商", "net": "35.00"}
+        ],
+        "synthetic": true
+      }
+    }
+  },
+  "parameter_sets": {
+    "default": {},
+    "budget_low": {"budget_initial": "5.00"},
+    "low_pass": {"items": {"AM-007": {"p": "0.10"}}}
+  }
+}

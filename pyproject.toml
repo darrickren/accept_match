@@ -1,0 +1,13 @@
+[project]
+name = "acceptmatch"
+version = "0.1.0"
+description = "AcceptMatch MVP（合成数据演示）"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+markers = [
+    "bedrock: 需要真实 Amazon Bedrock 凭证的测试",
+]

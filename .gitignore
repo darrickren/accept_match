@@ -1,2 +1,10 @@
 *.csv
 /OneDrive_1_2026-10-15/
+# AcceptMatch 运行时与本地环境
+var/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.streamlit/secrets.toml
