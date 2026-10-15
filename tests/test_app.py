@@ -106,6 +106,63 @@ def test_pass_path_quote_108_and_reserve(tmp_path, monkeypatch):
     assert "已预留：RSV-0001｜商品 AM-007｜标签 SYN-T-Q5ZT｜金额 108.00 CAD" in page
 
 
+def reserve_am007(app: AppTest) -> None:
+    submit_demo_request(app)
+    inspect_zipper(app, "OK")
+    app.checkbox(key="ack_QUO-0001_DF-AM007-BACK-1").check()
+    app.checkbox(key="ack_amount_QUO-0001").check()
+    click(app, "confirm_btn_QUO-0001")
+    assert "确认预留：完成" in texts(app)
+
+
+def scan_for_delivery(app: AppTest, tag: str) -> None:
+    app.text_input(key="dscan_RSV-0001").input(tag)
+    click(app, "dscan_btn_RSV-0001")
+
+
+def test_delivery_wrong_tag_then_correct_tag(tmp_path, monkeypatch):
+    app = make_app(tmp_path, monkeypatch)
+    reserve_am007(app)
+    assert app.selectbox(key="selected_reservation").value == "RSV-0001"  # 默认选最新的预留
+
+    scan_for_delivery(app, "SYN-T-9CFL")  # AM-006 的标签
+    page = texts(app)
+    assert "交付被阻止（DELIVERY_MISMATCH）" in page and "这是 AM-006 的标签" in page
+    assert "已预留：RSV-0001" in page and "已交付" not in page.split("交付核验记录")[0]
+
+    scan_for_delivery(app, "SYN-T-Q5ZT")
+    page = texts(app)
+    assert "标签已核对：SYN-T-Q5ZT 属于预留商品 AM-007（核验 DLV-0002）" in page
+
+    # 有部位没确认时，服务拒绝
+    click(app, "dconfirm_btn_DLV-0002")
+    assert "确认交付被拒绝（FINDING_INCOMPLETE）" in texts(app)
+
+    for point in ("FRONT", "BACK", "ZIPPER"):
+        app.radio(key=f"dmatch_DLV-0002_{point}").set_value("match")
+    click(app, "dconfirm_btn_DLV-0002")
+    page = texts(app)
+    assert "确认交付：完成" in page and "已交付：AM-007（预留 RSV-0001，核验 DLV-0002）" in page
+    assert "已交付：RSV-0001｜商品 AM-007｜标签 SYN-T-Q5ZT" in page  # 买家标签页
+    assert "需求 REQ-0001 的状态：已交付" in page
+    history = next(d.value for d in app.dataframe if "扫描到的标签" in d.value.columns)
+    assert list(history["结果"]) == ["标签不一致，已阻止交付", "已交付"]
+
+
+def test_delivery_condition_mismatch_goes_to_manual_review(tmp_path, monkeypatch):
+    app = make_app(tmp_path, monkeypatch)
+    reserve_am007(app)
+    scan_for_delivery(app, "SYN-T-Q5ZT")
+    app.radio(key="dmatch_DLV-0001_FRONT").set_value("match")
+    app.radio(key="dmatch_DLV-0001_BACK").set_value("match")
+    app.radio(key="dmatch_DLV-0001_ZIPPER").set_value("mismatch")
+    click(app, "dconfirm_btn_DLV-0001")
+    page = texts(app)
+    assert "交付被阻止（CONDITION_MISMATCH）" in page and "拉链的实物与证据不一致" in page
+    assert "已阻止交付并转人工处理，不能继续交付" in page
+    assert "已预留：RSV-0001" in page
+
+
 def test_fail_path_no_match_after_reset(tmp_path, monkeypatch):
     app = make_app(tmp_path, monkeypatch)
     submit_demo_request(app)

@@ -257,11 +257,23 @@ P0 的 6 张表：
 
 ### P1
 
-- [ ] 9. 交付核验
-  - [ ] 9.1 编写 `start_delivery_check` 和 `complete_delivery_check`：标签不一致时记录 `DELIVERY_MISMATCH`；逐部位比对证据，有不一致时记录 `CONDITION_MISMATCH` 并转人工；全部通过后商品改为 `DELIVERED`
+- [x] 9. 交付核验
+  - 实际做法：
+    - 文件：`tools/delivery_ops.py`（人工操作，不暴露给 Agent）；页面在现有单页上增加"交付"标签页（买家 / 检查员 / 交付 / 控制台），没有拆分页面
+    - 不改表结构：每次核验（`DLV-0001` 起）记录在预留记录的 `content_json["delivery_checks"]` 中，同时写审计 `DELIVERY_CHECK_STARTED` / `DELIVERY_MISMATCH` / `CONDITION_MISMATCH` / `DELIVERY_COMPLETED`
+    - 交付时对照的是买家确认时那个状态版本的证据（预留记录上的 `condition_version`），不是当前版本
+    - 标签不一致时：记录预留的商品、扫描到的标签，以及这个标签属于哪件商品；预留和商品状态都不变，换成正确的商品后可以继续交付
+    - 有部位不一致时：阻止交付，标记 `needs_manual_review`，之后该预留不能再发起核验（`MANUAL_REVIEW_REQUIRED`）。人工处理流程不在本任务范围内
+    - 三个部位都必须明确确认（`FINDING_INCOMPLETE`）；同一预留同一时间只能有一次核验等待确认（`DELIVERY_CHECK_PENDING`）；只有 delivery 角色、合成编号 `SYN-DELIVERY-xx` 能操作
+    - 新增原因码：`RESERVATION_NOT_ACTIVE`、`DELIVERY_MISMATCH`、`CONDITION_MISMATCH`、`DELIVERY_CHECK_PENDING`、`DELIVERY_CHECK_NOT_PENDING`、`MANUAL_REVIEW_REQUIRED`
+    - 种子预留 `RSV-SEED-01`（AM-006）也可以按同样流程交付
+    - 浏览器走查（`scripts/e2e_walkthrough.py`）：
+      - 预留 AM-007 后先扫描 `SYN-T-9CFL`：交付被阻止，提示这是 AM-006 的标签，买家页面仍显示已预留
+      - 再扫描 `SYN-T-Q5ZT`：三个部位都选"一致"后确认，商品、预留和需求都变为已交付
+  - [x] 9.1 编写 `start_delivery_check` 和 `complete_delivery_check`：标签不一致时记录 `DELIVERY_MISMATCH`；逐部位比对证据，有不一致时记录 `CONDITION_MISMATCH` 并转人工；全部通过后商品改为 `DELIVERED`
     - _需求：11.1–11.6_
-  - [ ] 9.2 增加交付标签页（或独立页面）
-  - [ ]* 9.3 场景测试：扫描 `SYN-T-Q5ZT` 后交付完成；扫描 `SYN-T-9CFL` 时被阻止，AM-007 保持 `RESERVED`；design §11.1 的属性 11
+  - [x] 9.2 增加交付标签页（或独立页面）
+  - [x]* 9.3 场景测试：扫描 `SYN-T-Q5ZT` 后交付完成；扫描 `SYN-T-9CFL` 时被阻止，AM-007 保持 `RESERVED`；design §11.1 的属性 11
     - _需求：14.4、14.6_
 
 - [ ] 10. 故障恢复（需求 12.9）

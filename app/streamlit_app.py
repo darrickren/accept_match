@@ -1,10 +1,11 @@
 """AcceptMatch MVP 单页演示（合成数据）。
 
 侧边栏：合成数据标签、编排模式、本轮演示信息、重置。
-标签页：买家 / 检查员 / 控制台。
+标签页：买家 / 检查员 / 交付 / 控制台。
 
 页面只调用现有服务：
-- 写：tools.human_ops（人工操作）、agent.flow.continue_after（Agent 运行）、AppContext.reset（重置）
+- 写：tools.human_ops、tools.delivery_ops（人工操作）、agent.flow.continue_after（Agent 运行）、
+  AppContext.reset（重置）
 - 读：acceptmatch.ui.views
 写操作只在按钮回调中执行；每次渲染都从数据库读取业务数据。
 运行方式：.venv/bin/streamlit run app/streamlit_app.py（只监听 localhost，没有身份认证）
@@ -26,6 +27,7 @@ import streamlit as st  # noqa: E402
 from acceptmatch.agent.flow import continue_after  # noqa: E402
 from acceptmatch.agent.orchestrator import RunOutcome  # noqa: E402
 from acceptmatch.domain.enums import DefectType, Point, RequestStatus, Severity  # noqa: E402
+from acceptmatch.tools import delivery_ops as do  # noqa: E402
 from acceptmatch.tools import human_ops as ho  # noqa: E402
 from acceptmatch.tools.envelope import ToolResult  # noqa: E402
 from acceptmatch.ui import views  # noqa: E402
@@ -41,7 +43,11 @@ TOOL_LABELS = {
     ho.SUBMIT_INSPECTION: "提交检查结果",
     ho.CONFIRM: "确认预留",
     ho.DECLINE: "拒绝报价",
+    do.START: "核对交付标签",
+    do.COMPLETE: "确认交付",
 }
+BLOCKING_CODES = {"DELIVERY_MISMATCH", "CONDITION_MISMATCH"}
+MATCH_CHOICES = {"match": "一致", "mismatch": "不一致"}
 RUN_STATUS_LABELS = {
     "COMPLETED": "已完成本次可做的步骤",
     "INCOMPLETE": "提前结束，仍有可做的步骤",
@@ -51,7 +57,7 @@ RUN_STATUS_LABELS = {
     "REFUSED_HALTED": "被拒绝：上一次运行失败，需要恢复",
     "CONFIG_ERROR": "配置缺失",
 }
-FORM_KEY_PREFIXES = ("req_", "ack_", "scan_", "concl_", "dtype_", "dsev_", "eref_")
+FORM_KEY_PREFIXES = ("req_", "ack_", "scan_", "concl_", "dtype_", "dsev_", "eref_", "dscan_", "dmatch_")
 
 st.set_page_config(page_title="AcceptMatch MVP（合成数据）", layout="wide")
 ss = st.session_state
@@ -77,11 +83,13 @@ def show_flash() -> None:
 
 def flash_result(res: ToolResult) -> None:
     name = TOOL_LABELS.get(res.tool, res.tool)
+    codes = "、".join(res.reason_codes)
+    extra = f"已记录：{'、'.join(res.recorded)}。" if res.recorded else ""
     if res.ok:
         flash("success", f"✅ {name}：完成。")
+    elif set(res.reason_codes) & BLOCKING_CODES:
+        flash("error", f"🚫 交付被阻止（{codes}）：{res.message or ''}。{extra}")
     else:
-        codes = "、".join(res.reason_codes)
-        extra = f"已记录：{'、'.join(res.recorded)}。" if res.recorded else ""
         flash("error", f"❌ {name}被拒绝（{codes}）：{res.message or ''} {extra}")
 
 
@@ -148,7 +156,8 @@ def on_reset() -> None:
         return
     next_version = ss.get("req_form_version", 0) + 1  # 表单版本只增不减，避免重用旧控件的键
     for key in list(ss.keys()):
-        if key.startswith(FORM_KEY_PREFIXES) or key in ("selected_request", "selected_task", "selected_reservation"):
+        if key.startswith(FORM_KEY_PREFIXES) or key in ("selected_request", "selected_task", "selected_reservation",
+                                                         "seen_reservations"):
             del ss[key]
     ss.req_form_version = next_version
     ss.req_form_preset = "blank"
@@ -212,6 +221,23 @@ def on_confirm(request_id: str, quote: dict) -> None:
 def on_decline(request_id: str, quote: dict) -> None:
     res = ho.decline_quote(get_ctx().rt, request_id, BUYER_ID, quote["quote_id"])
     flash_result(res)
+
+
+def on_start_delivery(reservation_id: str) -> None:
+    res = do.start_delivery_check(get_ctx().rt, reservation_id, (ss.get("delivery_operator_id") or "").strip(),
+                                  ss.get(f"dscan_{reservation_id}") or "")
+    flash_result(res)
+
+
+def on_complete_delivery(reservation_id: str, check_id: str) -> None:
+    confirmations = [{"point": p.value,
+                      "matches": {"match": True, "mismatch": False}.get(ss.get(f"dmatch_{check_id}_{p.value}"))}
+                     for p in Point]
+    res = do.complete_delivery_check(get_ctx().rt, reservation_id, check_id,
+                                     (ss.get("delivery_operator_id") or "").strip(), confirmations)
+    flash_result(res)
+    if res.ok:
+        flash("success", f"📦 已交付：{res.data['item_id']}（预留 {reservation_id}，核验 {check_id}）。")
 
 
 # ================================================================ 侧边栏
@@ -316,6 +342,11 @@ def request_panel(c: AppContext, request_id: str) -> None:
         r = v["reservation"]
         st.success(f"✅ 已预留：{r['reservation_id']}｜商品 {v['quote']['item_id']}｜标签 {v['quote']['tag_code']}｜"
                    f"金额 {r['amount']} CAD（合成金额）")
+        st.caption("等待交付：交付时会扫描实物标签，并逐项核对上面的证据。")
+    elif status == RequestStatus.DELIVERED and v["reservation"]:
+        r = v["reservation"]
+        st.success(f"📦 已交付：{r['reservation_id']}｜商品 {v['quote']['item_id']}｜标签 {v['quote']['tag_code']}｜"
+                   f"金额 {r['amount']} CAD（合成金额）。交付时已核对标签和各部位证据。")
     elif status == RequestStatus.NO_MATCH and v["no_match"]:
         st.warning(f"🚫 {v['no_match']['summary']}")
         st.markdown("\n".join(f"- **{e['item_id']}**：{'；'.join(e['buyer_messages'])}" for e in v["no_match"]["items"]))
@@ -405,6 +436,63 @@ def inspector_tab(c: AppContext) -> None:
                         key=f"eref_{task_id}_{point}")
         st.form_submit_button("提交检查结果", key=f"inspect_btn_{task_id}", type="primary", on_click=on_inspect,
                               args=(task_id, points, item_id))
+
+
+# ================================================================ 交付
+
+
+def delivery_tab(c: AppContext) -> None:
+    st.header("交付")
+    st.text_input("交付人员编号（合成）", key="delivery_operator_id")
+    reservations = views.delivery_reservations(c.conn)
+    if not reservations:
+        st.info("当前没有待交付的预留。")
+    else:
+        by_id = {r["reservation_id"]: r for r in reservations}
+        newest = reservations[-1]["reservation_id"]
+        # 出现新的预留时自动选中它；否则保留交付人员当前的选择
+        if ss.get("selected_reservation") not in by_id or newest not in ss.get("seen_reservations", []):
+            ss.selected_reservation = newest
+        ss.seen_reservations = list(by_id)
+        reservation_id = st.selectbox(
+            "选择要交付的预留", list(by_id), key="selected_reservation",
+            format_func=lambda rid: f"{rid}（商品 {by_id[rid]['item_id']}｜买家 {by_id[rid]['buyer_id']}）")
+        r = by_id[reservation_id]
+        st.markdown(f"**预留：** {reservation_id}｜**商品：** {r['item_id']}｜**买家：** {r['buyer_id']}"
+                    + (f"｜**需求：** {r['request_id']}" if r["request_id"] else "｜种子预留"))
+
+        if r["needs_manual_review"]:
+            st.error("🚫 上次核验发现实物与证据不一致，已阻止交付并转人工处理，不能继续交付。")
+        elif r["pending"] is None:
+            st.caption("第一步：扫描实物上的标签码。系统会核对它是否就是预留的那一件。")
+            with st.form(f"dscan_form_{reservation_id}"):
+                st.text_input("扫描到的标签码", key=f"dscan_{reservation_id}",
+                              placeholder="扫描或输入标签码，例如 SYN-T-XXXX")
+                st.form_submit_button("核对标签", key=f"dscan_btn_{reservation_id}", type="primary",
+                                      on_click=on_start_delivery, args=(reservation_id,))
+        else:
+            check = r["pending"]
+            st.success(f"✅ 标签已核对：{check['scanned_tag_code']} 属于预留商品 {r['item_id']}（核验 {check['check_id']}）。")
+            st.caption("第二步：逐个部位对照买家确认时的证据检查实物。任一部位不一致都会阻止交付并转人工处理。")
+            with st.form(f"dconfirm_{check['check_id']}"):
+                for point in views.delivery_points(c.conn, reservation_id):
+                    st.markdown(f"**{point['label']}**：记录为{views.status_label(point['status'])}")
+                    lines = [f"- 已核实缺陷：{views.defect_text(d['type'], d['severity'])}" for d in point["defects"]]
+                    lines += [f"- 证据 {e['evidence_id']}：{views.source_label(e['source'])}｜照片占位 `{e['photo_ref']}`"
+                              f"（合成，无真实图片）" for e in point["evidence"]]
+                    if lines:
+                        st.markdown("\n".join(lines))
+                    st.radio(f"{point['label']}：实物与证据是否一致", list(MATCH_CHOICES), index=None, horizontal=True,
+                             key=f"dmatch_{check['check_id']}_{point['point']}", format_func=MATCH_CHOICES.get)
+                st.form_submit_button("确认交付", key=f"dconfirm_btn_{check['check_id']}", type="primary",
+                                      on_click=on_complete_delivery, args=(reservation_id, check["check_id"]))
+
+    st.subheader("交付核验记录")
+    history = views.delivery_history(c.conn)
+    if history:
+        st.dataframe(history, hide_index=True, width="stretch")
+    else:
+        st.caption("本轮还没有交付核验。")
 
 
 # ================================================================ 控制台
@@ -500,11 +588,13 @@ def main() -> None:
     mode = views.mode_info(c.settings)
     st.caption(f"🧪 合成数据演示｜编排模式：{mode.label}")
     show_flash()
-    buyer, inspector, console = st.tabs(["买家", "检查员", "控制台"])
+    buyer, inspector, delivery, console = st.tabs(["买家", "检查员", "交付", "控制台"])
     with buyer:
         buyer_tab(c)
     with inspector:
         inspector_tab(c)
+    with delivery:
+        delivery_tab(c)
     with console:
         console_tab(c)
 

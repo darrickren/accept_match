@@ -87,10 +87,15 @@ def submit_demo_request(page: Page) -> None:
     wait_text(page, "正在等待人工检查：AM-007 的拉链")
 
 
+def fill_visible(page: Page, label: str, value: str) -> None:
+    """只填当前标签页里可见的输入框（检查员和交付标签页都有"扫描到的标签码"）。"""
+    page.locator(f'input[aria-label="{label}"]:visible').fill(value)
+    print(f"  输入{label}：{value}")
+
+
 def inspect_zipper(page: Page, defect: bool) -> None:
     open_tab(page, "检查员")
-    page.get_by_label("扫描到的标签码", exact=True).fill("SYN-T-Q5ZT")
-    print("  输入标签码：SYN-T-Q5ZT")
+    fill_visible(page, "扫描到的标签码", "SYN-T-Q5ZT")
     page.get_by_text("有缺陷" if defect else "完好 / 正常", exact=True).first.click()
     print(f"  拉链结论：{'有缺陷' if defect else '完好 / 正常'}")
     if defect:
@@ -119,11 +124,11 @@ def fast_prefill_then_submit(page: Page, out: Path) -> None:
         raise AssertionError("快速连点提交了旧的表单值（需求中没有任何可接受缺陷和要求）")
     if page.get_by_text("还没有提交需求", exact=False).count() > 0:
         print("    ✓ 旧表单的提交没有生效，没有创建需求")
+        expect_radio(page, "背面的要求", "可接受缺陷")  # 表单显示填入后的值，可以正常提交
     else:
+        # 两次点击被合并进同一次运行时，填入先执行，提交的就是新值
         wait_text(page, "您接受的缺陷：背面划痕（最高轻微）。要求完好的部位：正面、拉链。")
         print("    ✓ 提交的是一键填入后的新值")
-    # 表单应当显示填入后的值，之后正常提交
-    expect_radio(page, "背面的要求", "可接受缺陷")
 
 
 def pass_path(page: Page, out: Path) -> None:
@@ -144,6 +149,48 @@ def pass_path(page: Page, out: Path) -> None:
     open_tab(page, "控制台")
     wait_text(page, "C = 8.00 ≤ B = 20.00")
     shot(page, out, "04_console_pass")
+
+
+def confirm_point(page: Page, label: str, choice: str) -> None:
+    group = page.get_by_role("radiogroup", name=f"{label}：实物与证据是否一致")
+    group.get_by_text(choice, exact=True).click()
+    print(f"  {label}：{choice}")
+
+
+def delivery_paths(page: Page, out: Path) -> None:
+    """接在通过路径之后：AM-007 已预留（RSV-0001）。"""
+    print("\n== 交付：错误标签 → 阻止交付 ==")
+    open_tab(page, "交付")
+    expect(page.get_by_role("combobox", name="选择要交付的预留")).to_have_value(
+        "RSV-0001（商品 AM-007｜买家 B-DEMO-01）", timeout=TIMEOUT_MS)
+    print("    ✓ 默认选中新的预留：RSV-0001（商品 AM-007）")
+    fill_visible(page, "扫描到的标签码", "SYN-T-9CFL")  # AM-006 的标签
+    click_button(page, "核对标签")
+    wait_text(page, "交付被阻止（DELIVERY_MISMATCH）")
+    wait_text(page, "SYN-T-9CFL（这是 AM-006 的标签）不是预留商品 AM-007 的标签")
+    shot(page, out, "07_delivery_wrong_tag")
+    open_tab(page, "买家")
+    wait_text(page, "已预留：RSV-0001｜商品 AM-007")  # 预留保持不变
+    print("    ✓ 预留保持不变，商品仍为已预留")
+
+    print("\n== 交付：正确标签 → 逐项核对 → 已交付 ==")
+    open_tab(page, "交付")
+    fill_visible(page, "扫描到的标签码", "SYN-T-Q5ZT")
+    click_button(page, "核对标签")
+    wait_text(page, "标签已核对：SYN-T-Q5ZT 属于预留商品 AM-007（核验 DLV-0002）")
+    for label in ("正面", "背面", "拉链"):
+        confirm_point(page, label, "一致")
+    shot(page, out, "08_delivery_compare")
+    click_button(page, "确认交付")
+    wait_text(page, "确认交付：完成")
+    wait_text(page, "已交付：AM-007（预留 RSV-0001，核验 DLV-0002）")
+    shot(page, out, "09_delivery_done")
+    open_tab(page, "买家")
+    wait_text(page, "已交付：RSV-0001｜商品 AM-007｜标签 SYN-T-Q5ZT")
+    wait_text(page, "需求 REQ-0001 的状态：已交付")
+    open_tab(page, "控制台")
+    wait_text(page, "已交付")
+    shot(page, out, "10_console_delivered")
 
 
 def fail_path(page: Page, out: Path) -> None:
@@ -183,6 +230,7 @@ def main() -> int:
                 fast_prefill_then_submit(page, out)
         if args.only in ("all", "flows"):
             pass_path(page, out)
+            delivery_paths(page, out)
             fail_path(page, out)
         browser.close()
     print("\n两条路径都已在浏览器中走通。")

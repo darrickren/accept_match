@@ -23,6 +23,7 @@ from acceptmatch.domain.enums import (
     Severity,
 )
 from acceptmatch.store import audit, repo
+from acceptmatch.tools import delivery_ops
 from acceptmatch.tools import state as st
 from acceptmatch.tools.envelope import Rejection
 from acceptmatch.ui import messages
@@ -226,6 +227,46 @@ def agent_runs(conn: sqlite3.Connection, epoch: int) -> list[dict[str, Any]]:
         elif e.event_type == "AGENT_RUN_ENDED" and run_id in runs:
             runs[run_id]["end"] = e.payload
     return list(reversed(list(runs.values())))
+
+
+DELIVERY_OUTCOMES = {
+    "AWAITING_CONFIRMATION": "标签一致，等待逐项确认",
+    "PASSED": "已交付",
+    "DELIVERY_MISMATCH": "标签不一致，已阻止交付",
+    "CONDITION_MISMATCH": "实物与证据不一致，已阻止交付并转人工",
+}
+
+
+def delivery_reservations(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    """待交付（ACTIVE）的预留，以及每个预留当前等待确认的核验。"""
+    out = []
+    for a in st.artifacts(conn, "RESERVATION"):  # 按创建顺序，最新的在最后
+        if a.status != "ACTIVE":
+            continue
+        checks = a.content.get("delivery_checks", [])
+        pending = next((c for c in checks if c["outcome"] == "AWAITING_CONFIRMATION"), None)
+        out.append({"reservation_id": a.artifact_id, "item_id": a.item_id, "request_id": a.request_id,
+                    "buyer_id": a.content.get("buyer_id"),
+                    "needs_manual_review": bool(a.content.get("needs_manual_review")), "pending": pending})
+    return out
+
+
+def delivery_points(conn: sqlite3.Connection, reservation_id: str) -> list[dict[str, Any]]:
+    """买家确认时那个状态版本的证据。"""
+    res = st.get_artifact(conn, reservation_id)
+    return delivery_ops.evidence_points(conn, res) if res is not None else []
+
+
+def delivery_history(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = []
+    for a in st.artifacts(conn, "RESERVATION"):
+        for c in a.content.get("delivery_checks", []):
+            rows.append({"核验": c["check_id"], "预留": a.artifact_id, "商品": a.item_id,
+                         "扫描到的标签": c["scanned_tag_code"],
+                         "结果": DELIVERY_OUTCOMES.get(c["outcome"], c["outcome"]),
+                         "不一致的部位": "、".join(point_label(p) for p in c.get("mismatched_points", [])),
+                         "交付人员": c["operator_id"], "扫码时间": c["started_at"]})
+    return sorted(rows, key=lambda r: r["核验"])
 
 
 def refused_runs(conn: sqlite3.Connection, epoch: int) -> list[dict[str, Any]]:

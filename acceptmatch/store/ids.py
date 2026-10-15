@@ -62,3 +62,13 @@ def next_evidence_ids(conn: sqlite3.Connection, count: int) -> list[str]:
 
 def next_defect_ids(conn: sqlite3.Connection, count: int) -> list[str]:
     return _next_in_conditions(conn, "defect_id", "DF", count)
+
+
+def next_delivery_check_id(conn: sqlite3.Connection) -> str:
+    """交付核验编号（DLV-0001 起）。核验记录保存在预留记录的 content_json 中。"""
+    rows = conn.execute(
+        "SELECT j.value AS id FROM artifacts a, json_tree(a.content_json) j "
+        "WHERE a.kind = 'RESERVATION' AND j.key = 'check_id' AND j.value GLOB 'DLV-[0-9]*'"
+    ).fetchall()
+    numbers = [int(r["id"][4:]) for r in rows if r["id"][4:].isdigit()]
+    return f"DLV-{max(numbers, default=0) + 1:04d}"
