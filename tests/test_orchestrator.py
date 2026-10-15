@@ -413,7 +413,10 @@ def test_run_start_records_mode_model_and_region(rt):
     Orchestrator(rt, s, driver_factory=lambda o: StrandsDriver(o, FakeModel())).run(rid, "REQUEST_SUBMITTED")
     payload = audit.list_events(rt.conn, event_type="AGENT_RUN_STARTED")[-1].payload
     assert (payload["mode"], payload["model_id"], payload["region"]) == ("bedrock", "model-id-from-env", "r-env")
-    assert payload["mode_label"] == "Strands + FakeModel（非 Bedrock）"  # 如实标注：替身模型不是 Bedrock
+    assert payload["mode_label"] == "Strands + 替身模型（非 Bedrock）"  # 如实标注：替身模型不是 Bedrock
+    stub_run = Orchestrator(rt, load_settings({"AGENT_MODE": "stub"})).run(
+        ho.submit_buyer_request(rt, **DEMO).request_id, "X")
+    assert stub_run.mode == "Strands + 替身模型（非 Bedrock）" and stub_run.status == "COMPLETED"
     scripted_run = Orchestrator(rt, settings()).run(ho.submit_buyer_request(rt, **DEMO).request_id, "X")
     assert scripted_run.mode == "离线脚本编排（非 Bedrock）"
 

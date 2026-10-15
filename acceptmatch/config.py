@@ -23,6 +23,7 @@ class ConfigError(ValueError):
 
 class AgentMode(str, Enum):
     BEDROCK = "bedrock"  # Strands Agent + Amazon Bedrock（默认）
+    STUB = "stub"  # Strands Agent + 替身模型，不访问网络，非 Bedrock
     SCRIPTED = "scripted"  # 离线脚本编排，按 allowed_next_actions 第一项执行，非 Bedrock
 
 

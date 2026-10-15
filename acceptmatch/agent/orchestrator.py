@@ -59,6 +59,7 @@ RUN_HALTED = "RUN_HALTED"
 
 MODE_LABELS = {
     AgentMode.BEDROCK: "Strands + Amazon Bedrock",
+    AgentMode.STUB: "Strands + 替身模型（非 Bedrock）",
     AgentMode.SCRIPTED: "离线脚本编排（非 Bedrock）",
 }
 
@@ -159,6 +160,10 @@ def _default_driver_factory(orch: Orchestrator) -> Driver:
         return ScriptedDriver(orch)
     from acceptmatch.agent.strands_driver import StrandsDriver, build_bedrock_model  # noqa: PLC0415
 
+    if orch.settings.agent_mode is AgentMode.STUB:
+        from acceptmatch.agent.stub_model import StubModel  # noqa: PLC0415
+
+        return StrandsDriver(orch, StubModel())
     return StrandsDriver(orch, build_bedrock_model(orch.settings))
 
 
@@ -393,10 +398,10 @@ class Orchestrator:
             status = RequestStatus(st.load_request(self.rt.conn, ctx.request_id).status).label
         except Rejection:
             status = "未知"
-        waiting = {"INSPECTOR": "等待检查员提交结果", "BUYER": "等待买家确认报价", "DELIVERY": "等待交付",
-                   "OPERATOR": "需要演示负责人处理"}.get(str(plan.awaiting) if plan and plan.awaiting else "", "")
+        # 请求状态本身已说明在等谁（例如"等待人工检查"），只在需要演示负责人处理时额外提示
+        operator = plan is not None and str(plan.awaiting) == "OPERATOR"
         tools = "、".join(c.tool for c in ctx.calls) or "无"
-        tail = f"，{waiting}" if waiting else ""
+        tail = "，需要演示负责人处理" if operator else ""
         return f"本次运行依次调用：{tools}。请求当前状态：{status}{tail}。"
 
     def _outcome(self, run_id: str | None, request_id: str, trigger: str, mode: AgentMode, status: str,

@@ -155,6 +155,10 @@ class StrandsDriver:
         """如实标注实际使用的模型：只有 BedrockModel 才标为 Amazon Bedrock。"""
         if isinstance(self.model, BedrockModel):
             return "Strands + Amazon Bedrock"
+        from acceptmatch.agent.stub_model import StubModel  # noqa: PLC0415
+
+        if isinstance(self.model, StubModel):
+            return "Strands + 替身模型（非 Bedrock）"
         return f"Strands + {type(self.model).__name__}（非 Bedrock）"
 
     def run(self, ctx: RunContext) -> str | None:

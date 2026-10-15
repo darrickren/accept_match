@@ -1,0 +1,4 @@
+# 浏览器端到端走查（可选，不是运行应用所必需）
+# 安装：uv pip install --python .venv/bin/python -r requirements-e2e.txt
+# 使用本机已安装的 Google Chrome（channel="chrome"），不需要下载 Playwright 自带的浏览器
+playwright==1.64.0

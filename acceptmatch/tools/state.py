@@ -130,6 +130,15 @@ def find_by_key(conn: sqlite3.Connection, kind: str, natural_key: str) -> Artifa
     return _artifact(row) if row else None
 
 
+def list_requests(conn: sqlite3.Connection, buyer_id: str | None = None) -> list[RequestRecord]:
+    """只读：按创建顺序列出请求（可按买家筛选）。"""
+    sql, params = "SELECT request_id FROM buyer_requests", []
+    if buyer_id is not None:
+        sql += " WHERE buyer_id = ?"
+        params.append(buyer_id)
+    return [load_request(conn, r["request_id"]) for r in conn.execute(sql + " ORDER BY rowid", params)]
+
+
 def tasks_for_request(conn: sqlite3.Connection, request_id: str) -> list[Artifact]:
     return [t for t in artifacts(conn, "INSPECTION_TASK") if request_id in t.content.get("request_ids", [])]
 
