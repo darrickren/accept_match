@@ -106,17 +106,29 @@ P0 的 6 张表：
     - 用 Hypothesis 验证 design §11.1 的属性 1、2、3、5、6
     - _需求：3、4、9、14.1_
 
-- [ ] 4. 精简存储、重置与操作记录
-  - [ ] 4.1 编写 `store/schema.sql`，包含上述 6 张表和约束；连接辅助函数设置 WAL、`foreign_keys`、`busy_timeout`，写操作使用 `BEGIN IMMEDIATE`
-  - [ ] 4.2 编写审计写入（只追加）和按 `epoch` 与类型前缀生成的序号 ID（例如 `REQ-0001`）
+- [x] 4. 精简存储、重置与操作记录
+  - 实际做法：
+    - 文件：`store/schema.sql`、`store/db.py`（连接、`write_tx`、规范化 JSON、`state_hash`）、`store/ids.py`、`store/audit.py`、`store/repo.py`（只读查询）、`services/reset.py`
+    - 约束全部在数据库层：
+      - `meta` 只有一行，预算 `0 ≤ 余额 ≤ 初始值`
+      - 有效预留、未完成检查任务都用部分唯一索引限制为每件商品一个
+      - `artifacts` 的 kind 与 status 组合受 CHECK 约束
+      - 所有业务表要求 `synthetic = 1`，JSON 列必须是合法 JSON
+      - `audit_events` 用触发器禁止 UPDATE/DELETE；`condition_versions` 禁止 UPDATE
+    - 审计事件编号按轮次从 `EVT-0001` 开始，主键为 `(epoch, seq)`；首次重置之前被拒的操作记在第 0 轮
+    - 新一轮编号取 `meta` 与审计中最大轮次再加一，所以即使 `meta` 丢失，编号也不会和历史审计冲突
+    - 重置被拒（种子无效、未知参数组、自检失败、中途出错）时，在单独的事务中写 `DEMO_RESET_REJECTED`，旧状态保持不变
+    - `ensure_initialized` 在事务内再次确认尚未初始化，多个会话同时首次启动时只会重置一次；以后启动会核对种子哈希
+  - [x] 4.1 编写 `store/schema.sql`，包含上述 6 张表和约束；连接辅助函数设置 WAL、`foreign_keys`、`busy_timeout`，写操作使用 `BEGIN IMMEDIATE`
+  - [x] 4.2 编写审计写入（只追加）和按 `epoch` 与类型前缀生成的序号 ID（例如 `REQ-0001`）
     - _需求：13.1、13.2_
-  - [ ] 4.3 编写 `reset_demo`
+  - [x] 4.3 编写 `reset_demo`
     - 先校验种子，再在一个事务内：`epoch` 加一，清空 `audit_events` 以外的表，写入种子和 AM-006 的预留，设置预算
     - 写审计 `DEMO_RESET`
     - 首次启动且数据库不存在时自动重置
     - 重置后自检：10 件商品、AM-006 为 `RESERVED`、AM-007 拉链为 `UNKNOWN`
     - _需求：1.1、1.6_
-  - [ ]* 4.4 存储测试：连续两次重置后状态哈希相同；同一商品的第二个 `ACTIVE` 预留被唯一索引拒绝；预算不能写成负数
+  - [x]* 4.4 存储测试：连续两次重置后状态哈希相同；同一商品的第二个 `ACTIVE` 预留被唯一索引拒绝；预算不能写成负数
     - _需求：1.6、10.6_
 
 - [ ] 5. 工具层与服务

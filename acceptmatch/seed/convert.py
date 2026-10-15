@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from acceptmatch.domain.economics import EconomicsInputs, NoInspectionChoice
+from acceptmatch.domain.enums import Point
 from acceptmatch.domain.models import (
     AcceptedDefect,
     BuyerRequestSpec,
@@ -30,6 +31,32 @@ def item_snapshot(item: sm.Item, condition_version: int = 1) -> ItemSnapshot:
         condition_version=condition_version,
         points=points,
     )
+
+
+def condition_payload(item: sm.Item) -> dict:
+    """Condition_Record 版本 1 的存储内容：各部位的状态、缺陷和完整 Evidence 记录。"""
+    payload = {}
+    for point in Point:
+        rec = item.points[point]
+        payload[point.value] = {
+            "status": rec.status.value,
+            "evidence_ids": list(rec.evidence_ids),
+            "defects": [
+                {
+                    "defect_id": d.defect_id,
+                    "type": d.type.value,
+                    "severity": d.severity.value,
+                    "evidence_ids": list(d.evidence_ids),
+                }
+                for d in rec.defects
+            ],
+            "evidence": [
+                {**e.model_dump(mode="json"), "inspection_task_id": None}
+                for e in item.evidence
+                if e.point is point
+            ],
+        }
+    return payload
 
 
 def price_rules(rules: sm.PriceRules, currency: str = "CAD") -> PriceRules:
