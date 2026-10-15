@@ -1,0 +1,2 @@
+# Streamlit frontend. Backend dependencies (Bedrock, Strands) to be added by the backend owner.
+streamlit==1.32.0
