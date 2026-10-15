@@ -76,6 +76,39 @@ class EvidenceSource(StrEnum):
         return {"INTAKE": "入库检测", "INSPECTION": "人工检查"}[self.value]
 
 
+class MatchResult(StrEnum):
+    QUALIFIED = "QUALIFIED"
+    NEEDS_INSPECTION = "NEEDS_INSPECTION"
+    EXCLUDED = "EXCLUDED"
+
+
+class Verdict(StrEnum):
+    INSPECT = "INSPECT"
+    SKIP = "SKIP"
+
+
+class ReasonCode(StrEnum):
+    """领域层原因码（design §6.5 的子集）。定义顺序即输出时的固定顺序。"""
+
+    # 匹配（需求 3）
+    PRODUCT_MISMATCH = "PRODUCT_MISMATCH"
+    NOT_AVAILABLE = "NOT_AVAILABLE"
+    REQUIREMENT_NOT_MET = "REQUIREMENT_NOT_MET"
+    UNACCEPTED_DEFECT = "UNACCEPTED_DEFECT"
+    # 请求级排除（由经济判断或检查结果写入）
+    INSPECTION_OVER_BUDGET = "INSPECTION_OVER_BUDGET"
+    INSPECTION_NOT_WORTHWHILE = "INSPECTION_NOT_WORTHWHILE"
+    ECONOMICS_INPUT_INVALID = "ECONOMICS_INPUT_INVALID"
+    INSPECTION_INCONCLUSIVE = "INSPECTION_INCONCLUSIVE"
+    # 价格（需求 9）
+    PRICE_RULE_MISSING = "PRICE_RULE_MISSING"
+    UNVERIFIED_POINTS = "UNVERIFIED_POINTS"
+
+    @property
+    def order(self) -> int:
+        return list(ReasonCode).index(self)
+
+
 class NoInspectionOptionKind(StrEnum):
     """不检查时允许的处置。不包含"向买家报价或预留"（需求 4.4）。"""
 
