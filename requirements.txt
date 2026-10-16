@@ -1,2 +1,6 @@
-# Streamlit frontend. Backend dependencies (Bedrock, Strands) to be added by the backend owner.
-streamlit==1.32.0
+# AcceptMatch customer site (V3). Direct runtime dependencies, pinned.
+streamlit==1.66.0
+pillow==12.3.0
+# AgentCore client (only imported when ACCEPTMATCH_AGENT=agentcore). Versions match the Agent team's branch.
+boto3==1.43.114
+botocore==1.43.114

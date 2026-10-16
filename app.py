@@ -1,44 +1,41 @@
-"""AcceptMatch Streamlit frontend (owner: Yanyu).
+"""AcceptMatch customer site (V3).
 
 Run from the repo root:  streamlit run app.py
-Uses the mock backend by default: synthetic data and a simulated agent.
+Uses the deterministic mock Agent by default (ACCEPTMATCH_AGENT=mock); all data
+is synthetic. The previous buyer/staff demo is preserved in app_v1.py.
 """
+
+from importlib import import_module
 
 import streamlit as st
 
-from ui import state
-from ui.activity import render_activity_panel
-from ui.components import agent_message, inject_css, render_header, render_sidebar, render_stepper
-from ui.views import inspection, matches, preferences, reservation
+from ui import kit, state, theme
 
-st.set_page_config(page_title="AcceptMatch demo", page_icon="👜", layout="wide")
+st.set_page_config(page_title="AcceptMatch", page_icon="👜", layout="wide", initial_sidebar_state="collapsed")
 
-VIEWS = {1: preferences.render, 2: matches.render, 3: inspection.render, 4: reservation.render}
+SCREENS = {
+    "home": "ui.screens.home",
+    "shop": "ui.screens.assistant",
+    "results": "ui.screens.results",
+    "listing": "ui.screens.listing",
+    "return": "ui.screens.returns",
+    "return_status": "ui.screens.return_status",
+}
 
 
 def main() -> None:
-    try:
-        state.init()
-    except RuntimeError as exc:  # e.g. an unavailable backend was selected
-        st.error(str(exc))
-        st.stop()
-
-    inject_css()
-    render_sidebar()
-    render_header()
-    render_stepper()
-    error = state.error()
-    if error:
-        st.error(error["message"])
-
-    main_column, activity_column = st.columns([3, 2], gap="large")
-    with main_column:
-        turn = state.turn()
-        if turn and turn.get("message") and state.current_step() == state.natural_step():
-            agent_message(turn["message"])
-        VIEWS[state.current_step()]()
-    with activity_column:
-        render_activity_panel()
+    state.v3_init()
+    settings = state.v3_settings()
+    if settings.warnings and not st.session_state.get("v3_config_logged"):
+        for warning in settings.warnings:
+            state.record_violation("site", "config", warning)
+        st.session_state["v3_config_logged"] = True
+    theme.inject()
+    kit.nav(settings)
+    import_module(SCREENS[state.route()]).render(settings)
+    if settings.diagnostics:
+        import_module("ui.diagnostics").render(settings)
+    kit.footer()
 
 
 main()
