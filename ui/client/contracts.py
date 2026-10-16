@@ -143,7 +143,10 @@ OPERATIONS = (
     "submit_return", "assess_return", "get_return_case", "add_return_info",
 )
 ERROR_CODES = ("invalid_input", "session_expired", "not_found", "state_conflict", "photo_rejected", "rate_limited",
-               "agent_timeout", "agent_unavailable", "contract_violation", "internal")
+               "agent_timeout", "agent_unavailable", "contract_violation", "internal",
+               # api mode (FastAPI error contract, see http_api.STATUS_CODES / BACKEND_CODES)
+               "unauthorized", "forbidden", "not_implemented", "stale_listing", "incomplete_acceptances",
+               "item_unavailable", "ai_output_invalid")
 SOURCES = ("mock", "agent")
 
 SESSION_PREFIX = {"shop": "am-shop-", "return": "am-retn-", "status": "am-stat-"}  # 8 chars + 32 hex = 40

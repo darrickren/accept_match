@@ -10,6 +10,11 @@ from ..status import NEUTRAL, customer_status
 
 
 def render(settings: Settings) -> None:
+    if state.api_mode("return"):
+        from . import api_returns
+
+        api_returns.render_status(settings)
+        return
     actions.return_begin()
     data = state.returns()
     kit.back_button("Back to returns", "return", "v3_r_status_back")

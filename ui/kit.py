@@ -7,6 +7,7 @@ native Streamlit buttons, so no whole-card click overlays are needed.
 
 from __future__ import annotations
 
+import re
 from html import escape
 from typing import Iterable, Optional
 
@@ -25,6 +26,18 @@ def html(markup: str) -> None:
 def text(value: object) -> str:
     """Escape any dynamic value for use inside our HTML snippets."""
     return escape("" if value is None else str(value))
+
+
+MARKDOWN_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+!|~<>$])")
+ORDERED_ITEM = re.compile(r"^(\d+)\.(\s)")
+
+
+def md_safe(value: object) -> str:
+    """Backend text for widget labels (Streamlit renders labels as Markdown): no links, images or LaTeX."""
+    line = " ".join(("" if value is None else str(value)).split())
+    line = MARKDOWN_SPECIAL.sub(r"\\\1", line)
+    line = ORDERED_ITEM.sub(r"\1\\.\2", line)
+    return "\\" + line if line[:1] in ("-", "=") else line
 
 
 def money(amount: Optional[float], currency: str = "CAD") -> str:
@@ -60,13 +73,25 @@ def heading(title: str, eyebrow: Optional[str] = None, lede: Optional[str] = Non
 
 
 def source_tag(journey: str) -> str:
-    """Per-journey label so mock output is never mistaken for the real Agent."""
+    """Per-journey label so mock output is never mistaken for the real Agent.
+
+    Live journeys are labelled from the backend's own analysis_source/model_id;
+    "AI-assisted" only appears after a successful answer that reports a real model.
+    """
     source = state.journey_source(journey)
     if source == "mock":
         return pill("Demo assistant · scripted", "demo")
     if source == "agent":
-        return pill("Live assistant", "verified")
+        label, tone = state.analysis_label(journey)
+        return pill(label, tone)
     return ""
+
+
+def cad_cents(cents: Optional[int]) -> str:
+    """Integer CAD cents from the backend, shown as CA$ with two decimals."""
+    if not isinstance(cents, int) or isinstance(cents, bool):
+        return ""
+    return money(cents / 100, "CAD")
 
 
 def bullet_list(items: Iterable[str]) -> None:
