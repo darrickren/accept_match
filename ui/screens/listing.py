@@ -16,6 +16,11 @@ STATUS_TONE = {"verified_ok": "verified", "defect": "possible", "failed": "off",
 
 
 def render(settings: Settings) -> None:
+    if state.api_mode("shop"):
+        from . import api_shop
+
+        api_shop.render_listing(settings)
+        return
     data = state.shop()
     kit.back_button("Back to results", "results", "v3_s_back_results")
     entry = data.get("listing") or {}

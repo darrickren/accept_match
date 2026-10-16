@@ -39,6 +39,24 @@ def resolve(image: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def safe_image_bytes(data: Optional[bytes]) -> Optional[bytes]:
+    """Bytes fetched from the backend, only if they decode as a raster JPEG/PNG/WebP of sane size.
+
+    Anything else (SVG, HTML, a decompression bomb) is refused before it is
+    re-served to the customer's browser.
+    """
+    if not data:
+        return None
+    try:
+        with Image.open(io.BytesIO(data)) as probe:
+            if probe.format not in ALLOWED_FORMATS or probe.size[0] * probe.size[1] > MAX_DECODE_PIXELS:
+                return None
+            probe.verify()
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        return None
+    return data
+
+
 class PhotoRejected(ValueError):
     """The upload can't be used; the message is safe to show to customers."""
 

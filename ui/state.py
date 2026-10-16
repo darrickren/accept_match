@@ -175,8 +175,17 @@ def v3_init() -> None:
 
 def v3_settings() -> Settings:
     if "v3_settings" not in st.session_state:
+        try:
+            st.secrets.load_if_toml_exists()  # Streamlit promotes root-level secrets to environment variables
+        except Exception:  # noqa: BLE001 - no secrets file or an older Streamlit: environment only
+            pass
         st.session_state["v3_settings"] = load_settings()
     return st.session_state["v3_settings"]
+
+
+def api_mode(journey: str) -> bool:
+    """True when this journey talks to the FastAPI backend (ACCEPTMATCH_AGENT[_JOURNEY]=api)."""
+    return v3_settings().backend_for(journey) == "api"
 
 
 def route() -> str:
@@ -218,6 +227,15 @@ def journey_source(journey: str) -> str:
     if client is not None:
         return client.source
     return "mock" if v3_settings().backend_for(journey) == "mock" else "agent"
+
+
+def analysis_label(journey: str):
+    """(label, tone) for a live journey, from the backend's latest analysis_source and model_id."""
+    from .client.api_mapper import analysis_label as label_for
+
+    client = st.session_state.get("v3_clients", {}).get(journey)
+    analysis = getattr(client, "analysis", None) or {}
+    return label_for(analysis.get("analysis_source"), analysis.get("model_id"))
 
 
 def agent_client(journey: str):
@@ -293,6 +311,8 @@ def run_v3(journey: str, operation: str, call, expected_request_id: Optional[str
         return None
     meta = response.get("meta") or {}
     merge_trace(journey, meta.get("trace"))
+    for note in meta.get("violations") or []:  # api mode: items dropped or downgraded by the client checks
+        record_violation(journey, "contract_violation", f"{operation}: {note}")
     if expected_request_id and meta.get("client_request_id") != expected_request_id:
         record_violation(journey, "stale_response", f"{operation}: response for another request was discarded")
         record_call(journey, operation, _ms(started), False, "stale_response", "discarded")
@@ -300,7 +320,9 @@ def run_v3(journey: str, operation: str, call, expected_request_id: Optional[str
     if not response.get("ok"):
         error = response.get("error") or {}
         set_error(journey, error)
-        record_call(journey, operation, _ms(started), False, error.get("code", "internal"), error.get("user_message", ""))
+        details = error.get("details") or {}
+        note = details.get("request_id") or error.get("user_message", "")
+        record_call(journey, operation, _ms(started), False, error.get("code", "internal"), str(note))
         return None
     clear_error(journey)
     record_call(journey, operation, _ms(started), True, None, meta.get("source", ""))
