@@ -1,12 +1,12 @@
 # AcceptMatch
 
-**A defect-aware retail prototype for matching returned merchandise with customers whose preferences are compatible with each item's documented condition.**
+**An agent-ready retail systems prototype for conversational preference capture, evidence-grounded product matching, and multimodal return intake.**
 
-AcceptMatch originated in the context of the **McGill–ALDO Retail Gen AI Hackathon 2026**. The project explores a practical retail question: can returned or cosmetically imperfect products be described transparently, matched against a customer's stated tolerances, and kept in circulation without allowing an automated assistant to invent product facts or make unsupported decisions?
+AcceptMatch originated at the **McGill–ALDO Retail Gen AI Hackathon 2026** around a practical circular-retail problem: how can returned or cosmetically imperfect products be matched to customers who explicitly accept their documented condition, while keeping product facts and business decisions auditable?
 
-The `main` branch is a stable, local Streamlit demonstration built entirely with synthetic data and deterministic rules. Its conversational interface is scripted rather than powered by a language model. Checkout, shipping, refunds, and merchant decisions are simulated or explicitly out of scope.
+The system turns customer dialogue into structured preferences, evaluates those preferences against item-level defect evidence, and guides return requests through adaptive photo collection. A typed client boundary separates the Streamlit experience from the decision provider, making the architecture ready for backend agents without coupling safety-critical matching and return rules to model output. The stable `main` implementation uses a deterministic scripted provider for reproducibility; experimental branches extend the same boundary toward FastAPI and agent infrastructure.
 
-> AcceptMatch is a hackathon prototype, not an official ALDO service. It does not implement production commerce or return-policy decisions.
+![AcceptMatch home page with four retail journeys](docs/images/home.jpg)
 
 ## What is implemented on `main`
 
@@ -19,30 +19,88 @@ The `main` branch is a stable, local Streamlit demonstration built entirely with
 - **Simulated outcomes with explicit boundaries.** Draft deterministic rules can produce demo outcomes such as approved, needs more information, manual review, or rejected. No real shipping label, refund, or merchant authorization is created.
 - **Diagnostics and contract checks.** Optional diagnostics record configuration warnings and contract violations without changing decision rules.
 
+## ML systems engineering highlights
+
+- **Agent-ready contracts.** UI workflows depend on typed operations and validated response envelopes rather than a specific model SDK, allowing scripted and service-backed providers to share the same interaction surface.
+- **Structured conversational state.** Context versions, request identifiers, idempotent operations, editable answers, and stale-turn rejection keep multi-step dialogue consistent across Streamlit reruns.
+- **Deterministic control plane.** Matching, eligibility, evidence sufficiency, and customer-visible status remain in testable Python rules. A provider can interpret intent, but it cannot manufacture inventory facts or override guardrails.
+- **Evidence provenance.** Each exact-item result carries condition evidence, verification status, exclusions, and missing checks; the frontend independently recomputes match safety before display.
+- **Multimodal intake pipeline.** The return flow derives photo requirements from the reported issue, validates uploads, normalizes orientation, limits dimensions and memory use, and removes metadata before assessment.
+- **Modular integration path.** The client boundary supports the published API-integration branch and additional local FastAPI/agent work while preserving a stable, offline demonstration on `main`.
+
 ## Architecture
 
 ```mermaid
 flowchart TD
-    U[User browser] --> S[Streamlit V3 application<br/>app.py]
-    S --> H{Four-entry home page}
-    H -->|New / Past-Season| X[Validated external ALDO links]
-    H -->|Buy Defective| P[Conversational preference workflow]
-    H -->|Return| R[Return evidence workflow]
+    U[Customer browser]
 
-    P --> C[Typed client-contract boundary]
-    R --> C
-    C --> M[Deterministic mock agent<br/>default on main]
+    subgraph UX[Experience layer — stable on main]
+        UI[Streamlit V3 application]
+        SHOP[Conversational shopping workflow]
+        RET[Return evidence workflow]
+        EXT[Validated external retail links]
+        CONTRACT[Typed client-contract boundary]
+    end
 
-    M --> D[(Synthetic catalogue and<br/>browser-session state)]
-    D --> E[Pure defect-aware<br/>matching rules]
-    D --> Q[Rule-based return<br/>assessment]
+    subgraph CONTROL[Deterministic control plane — stable on main]
+        MOCK[Scripted provider]
+        STATE[(Synthetic catalogue and session state)]
+        MATCH[Defect-aware matching]
+        RETURN_RULES[Return rules and evidence checks]
+        GUARD[Contract validation and frontend guardrails]
+        OUTPUT[Explainable results and demo statuses]
+    end
 
-    E --> G[Frontend guardrails<br/>validate, exclude, or downgrade]
-    G --> O[Verified / possible<br/>product results]
-    Q --> T[Simulated return status]
+    subgraph EXP[Experimental integration path]
+        HTTP[HTTP API adapter — feature branch]
+        API[FastAPI service — local development]
+        AGENT[Agent orchestration and model providers]
+        CLOUD[Gemini / Bedrock / AgentCore<br/>current operation not independently verified]
+        STORE[(Persistence and image storage adapters)]
+    end
+
+    U --> UI
+    UI --> SHOP
+    UI --> RET
+    UI --> EXT
+    SHOP --> CONTRACT
+    RET --> CONTRACT
+    CONTRACT --> MOCK
+    MOCK --> STATE
+    STATE --> MATCH
+    STATE --> RETURN_RULES
+    MATCH --> GUARD
+    RETURN_RULES --> GUARD
+    GUARD --> OUTPUT
+
+    CONTRACT -.-> HTTP
+    HTTP -.-> API
+    API -.-> AGENT
+    API -.-> STORE
+    AGENT -.-> CLOUD
 ```
 
-The client boundary deliberately separates presentation code from the decision provider. On `main`, that provider is a deterministic mock. Experimental branches use the same boundary for HTTP/backend integration, but those paths are not part of the stable `main` implementation.
+Solid lines represent the code path available on `main`; dashed lines show the modular integration path developed on separate branches or in unpublished local work. The same contract boundary allows provider experiments while deterministic code remains authoritative for catalogue facts, matching, and demo decisions.
+
+## Interface walkthrough
+
+### Conversational preference workflow
+
+The assistant asks one relevant question at a time and exposes the accumulated structured state for review and editing. The interface labels the active provider so the scripted demonstration cannot be mistaken for real LLM inference.
+
+![Scripted conversational workflow with structured customer preferences](docs/images/preferences.jpg)
+
+### Defect-aware matching results
+
+Results are ranked by evidence quality and display exact-item defects, required component checks, availability, and price. A claimed verified match is downgraded or removed when the local guardrail layer cannot reproduce it from the evidence.
+
+![Verified synthetic matches with defect and component evidence](docs/images/matching-results.jpg)
+
+### Multimodal return evidence collection
+
+The return workflow converts the reported issue into required and optional photo views. The current mock assessment checks evidence presence and file constraints; it does not claim computer-vision analysis.
+
+![Adaptive return evidence and photo submission workflow](docs/images/return-evidence.jpg)
 
 ## Technology and repository organization
 
@@ -120,19 +178,6 @@ Experimental work has separate, broader suites. During the audit, the unpublishe
 | Local backend / AgentCore work | Experimental and not yet published | Includes additional FastAPI, persistence, provider, and deployment work. It has not been independently verified as a currently live service |
 
 AcceptMatch does **not** claim a trained model, measured ML accuracy, production deployment, real-time inventory, or a currently active external LLM service. The design separates model-assisted interpretation from deterministic business constraints so that future experiments can be evaluated without weakening product, evidence, or transaction guardrails.
-
-## Recommended screenshots
-
-For a portfolio-ready README, use only synthetic demo data and place screenshots as follows:
-
-| Placement | Suggested capture | Purpose |
-|---|---|---|
-| Immediately below the introduction | Four-entry home page | Establishes the product and retail-oriented interface |
-| After “What is implemented” | Preference question beside the editable preference summary | Demonstrates structured conversational collection without implying an LLM |
-| After the architecture diagram | Ranked results plus an exact-item condition report | Shows explainable matching, disclosed defects, and verified/possible labels |
-| Beside the return-workflow description | Adaptive photo checklist and a clearly labelled demo outcome | Shows evidence collection and decision boundaries |
-
-Suggested repository paths are `docs/images/home.png`, `docs/images/preferences.png`, `docs/images/match-report.png`, and `docs/images/return-evidence.png`. Crop browser chrome where practical, retain the on-screen demo disclaimers, and verify that no personal information or internal documents are visible before committing images.
 
 ## Scope and limitations
 
