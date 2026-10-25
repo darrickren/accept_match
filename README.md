@@ -1,4 +1,4 @@
-# AcceptMatch
+# Accept-Match
 
 **An agent-ready retail systems prototype for conversational preference capture, evidence-grounded product matching, and multimodal return intake.**
 
