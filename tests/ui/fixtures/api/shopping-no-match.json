@@ -1,0 +1,19 @@
+{
+  "session_id": "sess-s-002",
+  "mode": "shopping",
+  "message": "Nothing available fits all of that right now.",
+  "next_action": "ASK_QUESTION",
+  "questions": [
+    {"question_id": "relax_budget", "text": "Would you consider up to CA$120?",
+     "options": [{"value": "yes", "label": "Yes, up to CA$120"}, {"value": "no", "label": "No, keep CA$80"}]}
+  ],
+  "required_photos": [],
+  "return_status": null,
+  "items": [],
+  "pending_acceptances": [],
+  "can_purchase": false,
+  "analysis_source": "SIMULATED",
+  "request_id": "req-102",
+  "errors": [],
+  "blocking_constraints": ["Size EU 36", "Under CA$80", "No stains"]
+}

@@ -1,0 +1,8 @@
+{
+  "new": {"label": "New", "url": "https://www.aldoshoes.com/en-ca", "agent": false},
+  "return": {"label": "Return", "path": "/return", "agent": true},
+  "buy_defective": {"label": "Buy Defective", "path": "/shop", "agent": true},
+  "out_of_season": {"label": "Official Sale / Clearance (demo redirect)",
+                    "url": "https://www.aldoshoes.com/en-ca/collections/sale", "agent": false},
+  "policy_version": "aldo-ca-2026-10-15-v1"
+}

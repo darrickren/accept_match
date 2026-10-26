@@ -1,0 +1,79 @@
+name: Offline CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - portfolio/sanitized-backend
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-backend.txt
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install frontend test environment
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements-dev.txt
+
+      - name: Install backend test environment
+        run: |
+          python -m venv .venv-backend
+          .venv-backend/bin/python -m pip install --upgrade pip
+          .venv-backend/bin/python -m pip install -r requirements-backend.txt
+
+      - name: Install DynamoDB Local with checksum verification
+        run: |
+          mkdir -p .local/dynamodb-local
+          curl --fail --silent --show-error --location --output /tmp/dynamodb_local_latest.tar.gz \
+            https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz
+          curl --fail --silent --show-error --location --output /tmp/dynamodb_local_latest.tar.gz.sha256 \
+            https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz.sha256
+          cd /tmp
+          sha256sum --check dynamodb_local_latest.tar.gz.sha256
+          tar -xzf dynamodb_local_latest.tar.gz -C "$GITHUB_WORKSPACE/.local/dynamodb-local"
+
+      - name: Run Streamlit UI tests
+        run: PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/ui -q -p no:cacheprovider
+
+      - name: Run backend tests
+        run: PYTHONDONTWRITEBYTECODE=1 .venv-backend/bin/python -m pytest tests/backend -q -p no:cacheprovider
+
+      - name: Run end-to-end tests
+        run: PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/e2e -q -p no:cacheprovider
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan reachable history and working tree with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

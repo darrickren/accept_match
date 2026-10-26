@@ -16,6 +16,11 @@ TIPS = "Daylight, a plain background and the whole item in frame. Please don't i
 
 
 def render(settings: Settings) -> None:
+    if state.api_mode("return"):
+        from . import api_returns
+
+        api_returns.render_flow(settings)
+        return
     actions.return_begin()
     data = state.returns()
     kit.back_button("Home", "home", "v3_r_back_home")

@@ -1,0 +1,36 @@
+{
+  "policy_version": "aldo-ca-2026-10-15-v1",
+  "demo_date": "2026-10-15",
+  "note": "Project demo rules, not ALDO policy. Sources and scope: backend/policies/sources.json.",
+  "standard_return_days": 30,
+  "defect_claim_days": 183,
+  "required_views": {
+    "DEFECT_CLAIM": ["pair_top", "pair_outer", "pair_inner", "pair_soles", "pair_heels", "defect_closeup", "size_label"],
+    "STANDARD_RETURN": ["pair_top", "pair_outer", "pair_inner", "pair_soles", "pair_heels", "size_label"]
+  },
+  "view_reasons": {
+    "pair_top": "We need both shoes together, from above.",
+    "pair_outer": "The outer sides of both shoes aren't visible yet.",
+    "pair_inner": "The inner sides of both shoes aren't visible yet.",
+    "pair_soles": "Both soles need to be fully visible.",
+    "pair_heels": "Both heels need to be visible from behind.",
+    "defect_closeup": "We need a clear close-up of the issue.",
+    "size_label": "The size or model label needs to be readable."
+  },
+  "auto_approve_defect_grades": ["A"],
+  "structural_defect_types": ["sole_separation", "broken_heel"],
+  "resale_price_ratio": {"A": 0.55, "B": 0.45},
+  "resale_grades": ["A", "B"],
+  "max_public_defects": 8,
+  "quality": {
+    "note": "Tuned on the synthetic demo images: sharp 274-658, blurred 93-102; dark 16-37, normal 100-222; other views >= 52 of 256 hash bits apart.",
+    "min_side_px": 480,
+    "min_sharpness": 150.0,
+    "min_brightness": 45.0,
+    "max_brightness": 240.0,
+    "duplicate_max_distance": 12
+  },
+  "publish_views": ["pair_top", "pair_outer", "pair_heels", "defect_closeup"],
+  "demo_return_address": "FICTIONAL DEMO ADDRESS — DO NOT SHIP\nAcceptMatch Returns (demo)\n100 Example Street, Montréal QC H0H 0H0",
+  "approved_next_step": "Pack both shoes in their box and write your return ID on the parcel. This is a demo: don't actually ship anything."
+}

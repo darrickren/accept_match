@@ -1,0 +1,16 @@
+{
+  "policy_version": "aldo-ca-2026-10-15-v1",
+  "retrieved_at": "2026-10-15",
+  "note": "Project version label, not an ALDO identifier. Summaries paraphrase public pages; the machine rules in settings/rules.json are demo rules.",
+  "sources": [
+    {"id": "aldo-ca-refund-policy", "url": "https://www.aldoshoes.com/en-ca/policies/refund-policy",
+     "summary": "Standard returns within 30 days, unworn and in original condition with proof of purchase; channel and final-sale limits apply.",
+     "scope": "STANDARD_RETURN", "official_or_demo": "official_summary"},
+    {"id": "aldo-ca-customer-service-faq", "url": "https://www.aldoshoes.com/en-ca/pages/customer-service-faq",
+     "summary": "Footwear defects are reviewed by customer service when reported within six months; photos and proof of purchase may be requested. Normal wear, misuse and unauthorized repairs are treated differently from manufacturing issues.",
+     "scope": "DEFECT_CLAIM", "official_or_demo": "official_summary"},
+    {"id": "demo-triage-rules", "url": null,
+     "summary": "Automatic APPROVED_DEMO only for complete, consistent evidence of a minor (grade A) cosmetic defect. Everything else goes to a simulated human review. Never an ALDO decision.",
+     "scope": "DEMO", "official_or_demo": "demo"}
+  ]
+}
