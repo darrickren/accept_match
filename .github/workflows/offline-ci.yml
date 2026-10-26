@@ -73,7 +73,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Scan reachable history and working tree with Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+      # Global [[allowlists]] require Gitleaks >= 8.25.0. Match local validation.
+      - name: Install Gitleaks 8.30.1 with checksum verification
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          set -euo pipefail
+          install_dir=$(mktemp -d "$RUNNER_TEMP/gitleaks.XXXXXX")
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location --output "$install_dir/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
+          # SHA-256 from the official v8.30.1 release checksum manifest.
+          printf '%s  %s\n' '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb' \
+            "$install_dir/$archive" | sha256sum --check --strict
+          tar -xzf "$install_dir/$archive" -C "$install_dir" gitleaks
+          "$install_dir/gitleaks" version
+          test "$("$install_dir/gitleaks" version)" = "$GITLEAKS_VERSION"
+          echo "$install_dir" >> "$GITHUB_PATH"
+
+      - name: Scan working tree with Gitleaks
+        run: gitleaks dir . --config .gitleaks.toml --redact --verbose --no-banner
+
+      - name: Scan all reachable history with Gitleaks
+        run: gitleaks git . --config .gitleaks.toml --log-opts=HEAD --redact --verbose --no-banner
