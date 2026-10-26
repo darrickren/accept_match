@@ -40,7 +40,8 @@ required working components. Customers can review and edit their preferences bef
 
 Results describe specific synthetic units, rather than generic product listings. Each card shows defects,
 component evidence, price, availability, and why the item fits. Code checks the supporting evidence before
-presenting a match as verified; customers must accept the disclosed defects before simulated checkout.
+presenting a match as verified. The public mock shopping flow stops at item details; only the optional API-backed
+workflow supports simulated checkout, after customers explicitly accept each disclosed defect.
 
 ### Submit and track a return
 
