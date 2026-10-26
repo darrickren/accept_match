@@ -3,8 +3,7 @@
 Run from the repo root:  streamlit run app.py
 Uses the deterministic mock Agent by default (ACCEPTMATCH_AGENT=mock); all data
 is synthetic. ACCEPTMATCH_AGENT=api connects Return and Buy Defective to the
-AcceptMatch FastAPI backend (see docs/FRONTEND_AGENT_INTEGRATION.md). The
-previous buyer/staff demo is preserved in app_v1.py.
+AcceptMatch FastAPI backend (see docs/FRONTEND_AGENT_INTEGRATION.md).
 """
 
 from importlib import import_module

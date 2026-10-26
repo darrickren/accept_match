@@ -226,5 +226,4 @@ and live account or runtime identifiers. There is no automatic fallback between 
   verified locally; provider tests do not establish a working cloud deployment or production readiness.
 
 Accept-Match is a student portfolio project with hackathon origins. It does not represent ALDO policy, endorsement,
-or deployment. The earlier buyer/staff prototype remains in `app_v1.py`; the Phase 1 presentation is a historical
-artifact whose third-party attributions and event context are preserved.
+or deployment. The earlier buyer/staff prototype and Phase 1 presentation remain accessible in prior Git commits.
