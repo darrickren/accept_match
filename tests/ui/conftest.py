@@ -9,7 +9,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 AGENT_ENV = ("ACCEPTMATCH_AGENT", "ACCEPTMATCH_AGENT_SHOP", "ACCEPTMATCH_AGENT_RETURN", "NEW_URL",
-             "PAST_SEASON_URL", "PAST_SEASON_CTA", "ACCEPTMATCH_DIAGNOSTICS")
+             "PAST_SEASON_URL", "PAST_SEASON_CTA", "ACCEPTMATCH_DIAGNOSTICS", "ACCEPTMATCH_API_BASE_URL",
+             "ACCEPTMATCH_API_TIMEOUT", "ACCEPTMATCH_API_VISION_TIMEOUT", "ACCEPTMATCH_API_HEALTH_TIMEOUT",
+             "ACCEPTMATCH_API_MAX_RETRIES", "ACCEPTMATCH_API_TOKEN", "ACCEPTMATCH_IMAGE_HOSTS",
+             "ACCEPTMATCH_DEMO_PERSONA", "ACCEPTMATCH_DEMO_PERSONA_SHOP", "ACCEPTMATCH_DEMO_PERSONA_RETURN",
+             "ACCEPTMATCH_DEMO_PASSWORD", "ACCEPTMATCH_DEMO_PASSWORD_SHOP", "ACCEPTMATCH_DEMO_PASSWORD_RETURN")
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +22,40 @@ def _clean_env(monkeypatch):
     for key in AGENT_ENV:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.chdir(ROOT)
+
+
+@pytest.fixture
+def fake_api():
+    """A fake FastAPI backend (tests/ui/fake_api.py) on a free local port: (backend, base_url)."""
+    from fake_api import start
+
+    server, backend, url = start()
+    yield backend, url
+    server.shutdown()
+    server.server_close()
+
+
+def api_env(monkeypatch, url, **extra):
+    """api mode for both journeys: cust-02 shops, cust-01 returns (the plan's demo personas)."""
+    env = {"ACCEPTMATCH_AGENT": "api", "ACCEPTMATCH_API_BASE_URL": url,
+           "ACCEPTMATCH_DEMO_PERSONA_SHOP": "cust-02", "ACCEPTMATCH_DEMO_PASSWORD_SHOP": "pw-cust-02",
+           "ACCEPTMATCH_DEMO_PERSONA_RETURN": "cust-01", "ACCEPTMATCH_DEMO_PASSWORD_RETURN": "pw-cust-01"}
+    env.update(extra)
+    for key, value in env.items():
+        if value is None:
+            monkeypatch.delenv(key, raising=False)
+        else:
+            monkeypatch.setenv(key, value)
+
+
+def api_app(monkeypatch, url, **extra):
+    from streamlit.testing.v1 import AppTest
+
+    api_env(monkeypatch, url, **extra)
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60)
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    return at
 
 
 @pytest.fixture

@@ -1,0 +1,19 @@
+{
+  "return_id": "RET-001",
+  "status": "APPROVED_DEMO",
+  "order_id": "ORD-001",
+  "order_line": "1",
+  "claim_type": "DEFECT_CLAIM",
+  "policy_version": "aldo-ca-2026-10-15-v1",
+  "analysis_source": "SIMULATED",
+  "model_id": null,
+  "photo_ids": ["P-001", "P-002", "P-003", "P-004", "P-005"],
+  "missing_views": [],
+  "retake_reason": null,
+  "rule_decision": {"code": "DEMO_TRIAGE_APPROVAL", "final_merchant_decision": false},
+  "inventory_status": "AWAITING_RECEIPT",
+  "item_id": "ITM-RET-001",
+  "demo_address": "FICTIONAL DEMO ADDRESS — DO NOT SHIP\nAcceptMatch Returns (demo)\n100 Example Street, Montréal QC",
+  "next_step": "Pack both shoes and write your return ID on the parcel (demo).",
+  "request_id": "req-002"
+}

@@ -1,194 +1,236 @@
 # Accept-Match
 
-**An agent-ready retail systems prototype for conversational preference capture, evidence-grounded product matching, and multimodal return intake.**
+**A retail AI systems prototype for defect-aware product matching and evidence-guided returns.**
 
-AcceptMatch originated at the **McGill–ALDO Retail Gen AI Hackathon 2026** around a practical circular-retail problem: how can returned or cosmetically imperfect products be matched to customers who explicitly accept their documented condition, while keeping product facts and business decisions auditable?
+AcceptMatch began at the **McGill–ALDO Retail Gen AI Hackathon 2026**. It explores how a retailer could match
+returned or cosmetically imperfect products with customers who explicitly accept the documented condition,
+while keeping catalogue facts, evidence, and transaction rules outside the model.
 
-The system turns customer dialogue into structured preferences, evaluates those preferences against item-level defect evidence, and guides return requests through adaptive photo collection. A typed client boundary separates the Streamlit experience from the decision provider, making the architecture ready for backend agents without coupling safety-critical matching and return rules to model output. The stable `main` implementation uses a deterministic scripted provider for reproducibility; experimental branches extend the same boundary toward FastAPI and agent infrastructure.
+This publication branch combines the working Streamlit demonstration with a FastAPI backend, local persistence,
+typed agent contracts, provider adapters, deterministic guardrails, and offline integration tests. The default
+experience remains fully local and scripted: `ACCEPTMATCH_AGENT=mock` is implied, no cloud credentials are needed,
+and no paid model endpoint is called.
 
 ![AcceptMatch home page with four retail journeys](docs/images/home.jpg)
 
-## What is implemented on `main`
+## Implementation status
 
-- **Conversational preference collection.** A guided assistant collects category, style, colour, price, acceptable defect types and severities, defect locations, and required working components. Answers can be reviewed and edited; stale or malformed turns are rejected.
-- **Defect-aware matching.** Pure matching functions compare structured preferences with synthetic, item-level condition reports. Results distinguish verified matches from possible matches that still lack evidence.
-- **Evidence-based guardrails.** Unknown evidence never counts as verified. Unaccepted defects, excessive severity, failed component checks, unavailable inventory, and unsupported agent claims are excluded or downgraded by deterministic frontend checks.
-- **Transparent product results.** The interface shows the exact synthetic item, price, disclosed imperfections, condition evidence, match rationale, and missing checks. The current customer site does not perform checkout.
-- **Return evidence workflow.** Customers can enter a demo order, describe an issue, receive an adaptive photo checklist, upload evidence, review the request, and retrieve a simulated status using a return ID and code.
-- **Privacy-oriented image handling.** Uploaded images are validated, resized, normalized for orientation, and stripped of metadata such as GPS information. In mock mode, images are checked for presence and file quality constraints; their visual contents are **not** analyzed by AI.
-- **Simulated outcomes with explicit boundaries.** Draft deterministic rules can produce demo outcomes such as approved, needs more information, manual review, or rejected. No real shipping label, refund, or merchant authorization is created.
-- **Diagnostics and contract checks.** Optional diagnostics record configuration warnings and contract violations without changing decision rules.
+| Capability | Status on this branch | What that means |
+| --- | --- | --- |
+| Streamlit customer demonstration | Implemented and offline-tested | The in-process scripted provider supports shopping, exact-item results, return intake, and return status. |
+| FastAPI service with DynamoDB Local | Implemented and offline-tested | Routes, schemas, demo authentication, sessions, inventory, checkout simulation, uploads, returns, and admin simulation run locally. |
+| Agent orchestration and structured output | Implemented and offline-tested | Shopping and return plans use Pydantic validation, bounded repair, read-only tools, and deterministic post-validation. |
+| Gemini adapter | Protocol-tested with mocked HTTP | Request shape, tool schemas, image payloads, structured responses, error mapping, and limits are tested without Google API calls. Live inference is unverified on this publication branch. |
+| Amazon Bedrock adapter | Tested with scripted models and AWS SDK stubs | Orchestration and failure handling are exercised without invoking Bedrock. Live inference is unverified on this publication branch. |
+| Bedrock AgentCore client/runtime | Contract-tested with a local entry point and botocore stubs | Runtime payloads, inventory snapshots, response validation, and local re-verification are tested offline. A live runtime is not included or verified. |
+| Authentication, checkout, fulfilment, and storage | Demo only | Credentials are local demo secrets, checkout and warehouse actions are simulations, DynamoDB is local, and images use the local filesystem. |
 
-## ML systems engineering highlights
-
-- **Agent-ready contracts.** UI workflows depend on typed operations and validated response envelopes rather than a specific model SDK, allowing scripted and service-backed providers to share the same interaction surface.
-- **Structured conversational state.** Context versions, request identifiers, idempotent operations, editable answers, and stale-turn rejection keep multi-step dialogue consistent across Streamlit reruns.
-- **Deterministic control plane.** Matching, eligibility, evidence sufficiency, and customer-visible status remain in testable Python rules. A provider can interpret intent, but it cannot manufacture inventory facts or override guardrails.
-- **Evidence provenance.** Each exact-item result carries condition evidence, verification status, exclusions, and missing checks; the frontend independently recomputes match safety before display.
-- **Multimodal intake pipeline.** The return flow derives photo requirements from the reported issue, validates uploads, normalizes orientation, limits dimensions and memory use, and removes metadata before assessment.
-- **Modular integration path.** The client boundary supports the published API-integration branch and additional local FastAPI/agent work while preserving a stable, offline demonstration on `main`.
+No trained model, model-quality benchmark, live inventory feed, production identity system, payment flow, refund,
+shipment, or public cloud deployment is claimed.
 
 ## Architecture
 
 ```mermaid
-flowchart TD
-    U[Customer browser]
+flowchart LR
+    USER[Customer]
 
-    subgraph UX[Experience layer — stable on main]
-        UI[Streamlit V3 application]
-        SHOP[Conversational shopping workflow]
-        RET[Return evidence workflow]
-        EXT[Validated external retail links]
-        CONTRACT[Typed client-contract boundary]
+    subgraph UI[Streamlit experience]
+        ROUTES[Shopping and return screens]
+        CLIENT[Typed client boundary]
+        UIGUARD[Frontend contract checks]
     end
 
-    subgraph CONTROL[Deterministic control plane — stable on main]
+    subgraph LOCAL[Default local path]
         MOCK[Scripted provider]
-        STATE[(Synthetic catalogue and session state)]
-        MATCH[Defect-aware matching]
-        RETURN_RULES[Return rules and evidence checks]
-        GUARD[Contract validation and frontend guardrails]
-        OUTPUT[Explainable results and demo statuses]
+        MOCKDATA[(Synthetic in-memory data)]
     end
 
-    subgraph EXP[Experimental integration path]
-        HTTP[HTTP API adapter — feature branch]
-        API[FastAPI service — local development]
-        AGENT[Agent orchestration and model providers]
-        CLOUD[Gemini / Bedrock / AgentCore<br/>current operation not independently verified]
-        STORE[(Persistence and image storage adapters)]
+    subgraph API[Optional local API path]
+        FASTAPI[FastAPI routes and Pydantic schemas]
+        AUTH[Demo token auth]
+        SERVICES[Sessions, inventory, returns, admin]
+        RULES[Deterministic policy and decision rules]
+        DDB[(DynamoDB Local)]
+        FILES[(Local image store)]
     end
 
-    U --> UI
-    UI --> SHOP
-    UI --> RET
-    UI --> EXT
-    SHOP --> CONTRACT
-    RET --> CONTRACT
-    CONTRACT --> MOCK
-    MOCK --> STATE
-    STATE --> MATCH
-    STATE --> RETURN_RULES
-    MATCH --> GUARD
-    RETURN_RULES --> GUARD
-    GUARD --> OUTPUT
+    subgraph AGENTS[Provider boundary]
+        ORCH[Strands orchestration]
+        GEMINI[Gemini adapter]
+        BEDROCK[Bedrock adapter]
+        AGENTCORE[AgentCore client and runtime]
+    end
 
-    CONTRACT -.-> HTTP
-    HTTP -.-> API
-    API -.-> AGENT
-    API -.-> STORE
-    AGENT -.-> CLOUD
+    USER --> ROUTES --> CLIENT
+    CLIENT --> MOCK --> MOCKDATA
+    CLIENT -. ACCEPTMATCH_AGENT=api .-> FASTAPI
+    FASTAPI --> AUTH
+    FASTAPI --> SERVICES
+    SERVICES --> RULES
+    SERVICES --> DDB
+    SERVICES --> FILES
+    SERVICES --> ORCH
+    ORCH -. optional, live unverified .-> GEMINI
+    ORCH -. optional, live unverified .-> BEDROCK
+    FASTAPI -. optional, live unverified .-> AGENTCORE
+    CLIENT --> UIGUARD
 ```
 
-Solid lines represent the code path available on `main`; dashed lines show the modular integration path developed on separate branches or in unpublished local work. The same contract boundary allows provider experiments while deterministic code remains authoritative for catalogue facts, matching, and demo decisions.
+The model-facing layer may extract preferences, choose the next question, or describe visible evidence. It cannot
+authorize a purchase, create inventory facts, decide return eligibility, or bypass evidence requirements. The API
+re-checks model output against DynamoDB Local and deterministic rules before returning customer-visible data.
 
-## Interface walkthrough
+## Customer experience
 
-### Conversational preference workflow
+### Conversational preference capture
 
-The assistant asks one relevant question at a time and exposes the accumulated structured state for review and editing. The interface labels the active provider so the scripted demonstration cannot be mistaken for real LLM inference.
+The assistant collects category, style, colour, size, budget, acceptable defect types and severities, locations,
+and required working components. The customer can review or edit the structured state. Context versions and request
+identifiers prevent stale or duplicated turns.
 
 ![Scripted conversational workflow with structured customer preferences](docs/images/preferences.jpg)
 
-### Defect-aware matching results
+### Evidence-grounded matching
 
-Results are ranked by evidence quality and display exact-item defects, required component checks, availability, and price. A claimed verified match is downgraded or removed when the local guardrail layer cannot reproduce it from the evidence.
+Results refer to exact synthetic units rather than generic SKUs. Each card carries disclosed defects, component
+evidence, price, availability, and the reason it matched. Deterministic checks downgrade or remove an unsupported
+"verified" match.
 
 ![Verified synthetic matches with defect and component evidence](docs/images/matching-results.jpg)
 
-### Multimodal return evidence collection
+### Return evidence intake
 
-The return workflow converts the reported issue into required and optional photo views. The current mock assessment checks evidence presence and file constraints; it does not claim computer-vision analysis.
+The return journey turns a synthetic issue report into required photo views, validates and normalizes uploads,
+removes image metadata, and applies deterministic evidence and policy checks. In mock mode, the system simulates
+visual findings; it does not claim computer-vision analysis.
 
 ![Adaptive return evidence and photo submission workflow](docs/images/return-evidence.jpg)
 
-## Technology and repository organization
+## Engineering highlights
 
-| Area | Technology / location | Role |
-|---|---|---|
-| Application | Python 3.12, Streamlit; `app.py` | Customer-facing V3 entry point and routing |
-| Screens | `ui/screens/` | Home, preference conversation, results, listing details, returns, and status |
-| Client contracts | `ui/client/contracts.py` | Structured request/response shapes and validation |
-| Scripted agent | `ui/client/mock_agent.py`, `ui/client/mock_conversation.py` | Deterministic conversation and idempotent demo operations |
-| Matching | `ui/client/matching.py` | Pure defect, severity, location, price, and evidence rules |
-| Guardrails | `ui/guardrails.py` | Re-validates listings and prevents unsupported “verified” claims |
-| Demo state/data | `ui/client/mock_store.py`, `ui/client/seed.py`, `static/` | Synthetic inventory, condition records, and images |
-| Return images | Pillow via `ui/images.py` | Validation, orientation correction, resizing, and metadata removal |
-| Tests | pytest, Streamlit `AppTest`; `tests/ui/` | UI flows, contracts, matching, safety checks, and return behavior |
-| Earlier prototype | `app_v1.py`, `ui/views/` | Preserved buyer/staff workflow; not the default application |
+- **Typed service boundary.** The Streamlit client validates every API envelope and refuses redirects, malformed
+  payloads, incompatible versions, and unsafe image origins.
+- **Structured agent output.** Pydantic schemas define shopping plans, return plans, photo findings, questions,
+  and execution evidence. Invalid model output receives one bounded repair attempt and then fails closed.
+- **Read-only model tools.** Agent tools search synthetic inventory, fetch item detail, look up a customer's own
+  demo order, and read a versioned return policy. Mutating actions stay in deterministic services.
+- **Decision guardrails.** Inventory availability, price, defect acceptance, required components, photo coverage,
+  return policy, idempotency, and state transitions remain code-controlled.
+- **Evidence provenance.** Responses identify the analysis source and may include redacted run metadata. Prompts,
+  customer text, image bytes, credentials, and provider identifiers are not included in diagnostics.
+- **Local-first persistence.** A DynamoDB repository runs against DynamoDB Local. A filesystem adapter stores
+  synthetic seed images and local uploads. Both are development implementations, not production storage.
+- **Synthetic data.** Catalogue units, orders, returns, product images, and generated evidence photos are synthetic.
 
-## Run locally
+## Repository map
 
-### Prerequisites
+| Area | Location |
+| --- | --- |
+| Streamlit entry points | `app.py` (current customer site), `app_v1.py` (earlier buyer/staff prototype) |
+| Frontend integration | `ui/api_actions.py`, `ui/client/api_*.py`, `ui/client/http_api.py` |
+| API and schemas | `backend/main.py`, `backend/schemas.py`, `backend/auth.py` |
+| Agent orchestration | `backend/agent/strands_agent.py`, `backend/agent/prompts.py`, `backend/agent/preferences.py` |
+| Provider adapters | `backend/agent/providers.py`, `backend/agent/agentcore_client.py`, `backend/agentcore/` |
+| Persistence | `backend/repository.py`, `backend/storage.py` |
+| Deterministic services | `backend/services/`, `backend/settings/`, `backend/policies/` |
+| Synthetic seed data | `backend/seed/`, `static/`, `samples/` |
+| Offline tests | `tests/ui/`, `tests/backend/`, `tests/e2e/` |
 
-- Python 3.12 recommended
-- macOS, Linux, or Windows with a shell capable of creating a virtual environment
+## Run the default Streamlit demo
 
-### Setup
+Python 3.12 is recommended.
 
 ```bash
-git clone https://github.com/darrickren/accept_match.git
-cd accept_match
-git checkout main
-
 python3.12 -m venv .venv
-source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
-
-### Start the customer site
-
-```bash
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
 streamlit run app.py
 ```
 
-The default configuration is self-contained: `ACCEPTMATCH_AGENT=mock` is implied, all catalogue records are synthetic, and no cloud credentials or external AI service are required. Optional diagnostics can be enabled with:
+The default configuration uses the in-process scripted provider and synthetic data. To make the choice explicit:
 
 ```bash
-ACCEPTMATCH_DIAGNOSTICS=1 streamlit run app.py
+ACCEPTMATCH_AGENT=mock streamlit run app.py
 ```
 
-Do not enter real order numbers, personal information, receipts, or customer photographs into this demonstration.
+Do not enter real customer information, order numbers, receipts, or photographs.
 
-## Testing
+## Run the local FastAPI path
 
-Install the development dependencies and run the `main` UI suite:
+The backend uses a separate environment and a local DynamoDB process. Download DynamoDB Local from the official
+AWS documentation, verify its published checksum, and extract it into `.local/dynamodb-local/`.
 
 ```bash
-python -m pip install -r requirements-dev.txt
-PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ui -q -p no:cacheprovider
+python3.12 -m venv .venv-backend
+.venv-backend/bin/pip install -r requirements-backend.txt
+.venv-backend/bin/python -m backend.scripts.dev secrets
+
+# Four terminals or processes:
+.venv-backend/bin/python -m backend.scripts.dev ddb
+.venv-backend/bin/python -m backend.scripts.dev seed
+.venv-backend/bin/python -m backend.scripts.dev api --mode mock
+.venv-backend/bin/python -m backend.scripts.dev frontend
 ```
 
-The repository audit and README validation run on October 25, 2026 verified:
+This path sets the frontend to `ACCEPTMATCH_AGENT=api`, while the API itself stays in `APP_MODE=mock`. See
+[`docs/BACKEND.md`](docs/BACKEND.md) for local details and
+[`docs/FRONTEND_AGENT_INTEGRATION.md`](docs/FRONTEND_AGENT_INTEGRATION.md) for the HTTP boundary.
+
+## Tests
+
+The suites are deliberately separate because the UI and backend use different environments.
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/ui -q -p no:cacheprovider
+PYTHONDONTWRITEBYTECODE=1 .venv-backend/bin/python -m pytest tests/backend -q -p no:cacheprovider
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/e2e -q -p no:cacheprovider
+```
+
+Backend tests start a real DynamoDB Local process. End-to-end tests start DynamoDB Local and uvicorn, then drive
+the Streamlit application with `AppTest`. Gemini traffic uses a mocked HTTP transport; Bedrock and AgentCore use
+scripted models or botocore stubs. The test commands never call Google, Amazon Bedrock, AgentCore, or another paid
+cloud service.
+
+Local validation on October 25, 2026 produced:
 
 ```text
-81 passed
+180 UI tests passed
+69 backend tests passed
+5 end-to-end tests passed
 ```
 
-These 81 tests are the applicable result for `main`. They cover the four-entry home page, scripted conversations, idempotency and stale-turn handling, catalogue invariants, defect-aware matching, frontend guardrails, image sanitation, return-state transitions, and customer-facing status behavior.
+The default mock Streamlit process also started successfully, returned `ok` from `/_stcore/health`, and served the
+root page with HTTP 200. The backend suite reported two upstream deprecation warnings from `bedrock-agentcore`;
+there were no application test failures.
 
-Experimental work has separate, broader suites. During the audit, the unpublished local backend worktree passed 180 UI, 69 backend, and 5 end-to-end tests. Those numbers are **not** `main` coverage and do not verify live Gemini, Amazon Bedrock, or AgentCore calls; the provider tests are offline or stubbed.
+GitHub Actions runs the same three offline suites and performs a Gitleaks scan with full Git history available.
 
-## Development status
+## Optional providers and publication boundary
 
-| Branch / workstream | Status | Accurate interpretation |
-|---|---|---|
-| `main` | Stable scripted demonstration | Streamlit UI, synthetic inventory, deterministic conversation, matching, return workflow, and simulated decisions |
-| `feature/customer-v3-agent-integration` | Published integration branch | Adds an HTTP/API adapter for connecting the customer journeys to a backend; kept separate from `main` |
-| Local backend / AgentCore work | Experimental and not yet published | Includes additional FastAPI, persistence, provider, and deployment work. It has not been independently verified as a currently live service |
+The code supports `APP_MODE=gemini-local`, `bedrock-local`, and `agentcore`, but this branch does not contain keys,
+account numbers, runtime ARNs, deployment state, CloudWatch identifiers, or infrastructure automation. Provider
+settings belong in the process environment or ignored local files. The live paths require the reader's own cloud
+account and explicit opt-in; they have not been independently exercised as part of this sanitized publication.
 
-AcceptMatch does **not** claim a trained model, measured ML accuracy, production deployment, real-time inventory, or a currently active external LLM service. The design separates model-assisted interpretation from deterministic business constraints so that future experiments can be evaluated without weakening product, evidence, or transaction guardrails.
+The public AgentCore note uses placeholders only: [`docs/AGENTCORE_PUBLIC.md`](docs/AGENTCORE_PUBLIC.md). The
+original operational runbook and deployment script are intentionally excluded.
 
-## Scope and limitations
+## Limitations
 
-- All inventory, product images, order identifiers, condition records, and outcomes are synthetic.
-- The default assistant is scripted and deterministic; natural-language interpretation is intentionally limited.
-- Mock return assessment does not inspect image contents and must not be presented as computer vision.
-- The customer site does not implement checkout, payment, shipment, refund, or production authentication.
-- Demo outcomes are not ALDO policy or decisions.
-- The application has not been evaluated for production security, accessibility, scalability, or ML performance.
-- Experimental cloud/provider work remains separate until its behavior, privacy boundaries, cost, and deployment state can be independently verified.
+- Demo authentication uses locally generated shared passwords and HMAC bearer tokens. It is not a production
+  identity system.
+- Checkout, warehouse inspection, return approval, fulfilment, refund, and commerce links are simulations.
+- DynamoDB Local and the local image store do not provide production durability, isolation, encryption policy,
+  backups, retention controls, or object-level authorization.
+- The mock agent has intentionally narrow language coverage. Provider tests establish contracts and failure
+  handling, not answer quality, latency, safety, or availability against live models.
+- Uploaded files receive defensive image processing, but the application has not completed a production security,
+  privacy, accessibility, load, or abuse-resistance review.
+- The Phase 1 presentation remains a historical project artifact; publication should preserve its third-party
+  attributions and event context.
 
-## Academic relevance
+## Responsible use
 
-AcceptMatch is intended as a systems-oriented prototype rather than a model-training project. Its primary technical themes are structured human–agent interaction, deterministic constraints around probabilistic components, evidence provenance, idempotent state transitions, defensive contract validation, privacy-aware image handling, and honest separation between demonstrated behavior and experimental AI infrastructure.
+All records and outcomes in this repository are synthetic. AcceptMatch does not represent ALDO policy or an ALDO
+production system. Treat it as an ML systems and software engineering portfolio project, not a customer service,
+commerce, or returns decision system.

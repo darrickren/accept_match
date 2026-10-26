@@ -1,36 +1,26 @@
 *.csv
 /OneDrive_1_2026-10-15/
 
-# Local environments, caches and secrets
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-.DS_Store
-.streamlit/secrets.toml
-
-.venv/
+# Python environments and caches
+.venv
+.venv-backend
 venv/
 __pycache__/
 *.pyc
 .pytest_cache/
-.DS_Store
+
+# Local configuration, credentials, and provider state
 .env
 .env.*
-.streamlit/secrets.toml
+!.env.example
 .aws/
+.streamlit/secrets.toml
 *.pem
 *.key
 
-.venv/
-venv/
-__pycache__/
-*.pyc
-.pytest_cache/
+# Backend runtime data: DynamoDB Local, generated images, uploads, and local manifests
+.local/
+dynamodb-local-metadata.json
+
+# Operating-system files
 .DS_Store
-.env
-.env.*
-.streamlit/secrets.toml
-.aws/
-*.pem
-*.key

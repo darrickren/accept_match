@@ -183,6 +183,19 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--am-link) !impor
 .am-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.05rem; letter-spacing: .04em;
   background: var(--am-surface); border-radius: 10px; padding: .15rem .55rem; }
 
+/* Conversation (api mode) */
+.am-chat { display: flex; flex-direction: column; gap: .55rem; margin: .4rem 0 1rem; }
+.am-msg { max-width: 92%; border-radius: 18px; padding: .7rem 1rem; font-size: .98rem; line-height: 1.45;
+  overflow-wrap: anywhere; }
+.am-msg.agent { background: var(--am-surface); color: var(--am-ink); align-self: flex-start; }
+.am-msg.you { background: var(--am-ink); color: #ffffff; align-self: flex-end; }
+.am-msg .am-who { display: block; font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  opacity: .72; margin-bottom: .15rem; }
+.am-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; color: var(--am-muted);
+  margin: .3rem 0 0; overflow-wrap: anywhere; }
+.st-key-am-purchase { background: var(--am-surface-2); border: 1px solid var(--am-hairline-soft); border-radius: 18px;
+  padding: 1rem 1.1rem .8rem; margin-top: 1rem; }
+
 /* Footer */
 .am-footer { margin-top: 4rem; padding-top: 1.1rem; border-top: 1px solid var(--am-hairline-soft);
   font-size: .78rem; line-height: 1.5; color: var(--am-muted); }

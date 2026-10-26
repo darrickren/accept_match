@@ -1,0 +1,63 @@
+{
+  "session_id": "sess-s-001",
+  "mode": "shopping",
+  "message": "I found 2 pairs in US women's 7 under CA$100 without stains.",
+  "next_action": "SHOW_ITEMS",
+  "questions": [],
+  "required_photos": [],
+  "return_status": null,
+  "items": [
+    {
+      "item_id": "ITM-001",
+      "title": "Black Ankle Boots",
+      "description": "Returned ankle boots, inspected (demo).",
+      "category": "SHOES",
+      "shoe_type": "Ankle boot",
+      "size_system": "US_WOMEN",
+      "size_value": "7",
+      "color": "black",
+      "price_cents": 6900,
+      "currency": "CAD",
+      "grade": "A",
+      "defects": [
+        {"defect_id": "D-001", "type": "scratch", "severity": "A", "location": "back heel",
+         "description": "Small cosmetic mark on heel counter", "evidence_photo_ids": ["P-101"],
+         "uncertainty": "low", "verified_by": "DEMO_SIMULATED"}
+      ],
+      "photos": [{"photo_id": "P-101", "url": "/media/items/ITM-001.jpg", "alt": "Both boots", "view": "pair_top"}],
+      "status": "AVAILABLE",
+      "match_status": "MATCH",
+      "match_reasons": ["Size US women's 7", "Under CA$100", "Scratch is fine with you"],
+      "pending_confirmations": [],
+      "listing_version": 1
+    },
+    {
+      "item_id": "ITM-005",
+      "title": "Black Sneakers",
+      "description": "Returned sneakers, inspected (demo).",
+      "category": "SHOES",
+      "size_system": "US_WOMEN",
+      "size_value": "7",
+      "color": "black",
+      "price_cents": 5900,
+      "currency": "CAD",
+      "grade": "A",
+      "defects": [
+        {"defect_id": "D-005", "type": "scuff", "severity": "A", "location": "right toe",
+         "description": "Light scuff on the toe", "evidence_photo_ids": [], "uncertainty": "low",
+         "verified_by": "DEMO_SIMULATED"}
+      ],
+      "photos": [],
+      "status": "AVAILABLE",
+      "match_status": "NEEDS_CONFIRMATION",
+      "match_reasons": ["Size US women's 7"],
+      "pending_confirmations": ["You haven't said whether scuffs are OK"],
+      "listing_version": 3
+    }
+  ],
+  "pending_acceptances": [],
+  "can_purchase": false,
+  "analysis_source": "SIMULATED",
+  "request_id": "req-101",
+  "errors": []
+}

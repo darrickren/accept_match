@@ -18,6 +18,11 @@ PLACEHOLDERS = {
 
 
 def render(settings: Settings) -> None:
+    if state.api_mode("shop"):
+        from . import api_shop
+
+        api_shop.render_assistant(settings)
+        return
     actions.shop_start(auto=True)
     data = state.shop()
     kit.back_button("Home", "home", "v3_s_back_home")

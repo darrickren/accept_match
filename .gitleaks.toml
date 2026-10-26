@@ -1,0 +1,17 @@
+title = "AcceptMatch secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Streamlit widget IDs are UI state keys, not credentials"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = [
+  '''^ui/screens/api_shop\.py$''',
+  '''^tests/ui/test_api_flows\.py$''',
+]
+regexes = [
+  '''key="v3_[A-Za-z0-9_-]+"''',
+]

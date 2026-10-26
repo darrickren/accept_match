@@ -16,6 +16,11 @@ POSSIBLE_NOTE = "Needs inspection before purchase."
 
 
 def render(settings: Settings) -> None:
+    if state.api_mode("shop"):
+        from . import api_shop
+
+        api_shop.render_results(settings)
+        return
     data = state.shop()
     context = actions.shop_context()
     kit.back_button("Back to the assistant", "shop", "v3_s_back_shop")
