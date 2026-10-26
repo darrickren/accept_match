@@ -1,27 +1,9 @@
-"""Backend client selection.
+"""Select the mock or FastAPI client per customer journey.
 
-Only this package knows whether a screen talks to the mock or to the live
-FastAPI backend. V1 (app_v1.py) keeps using get_client(); the V3 customer
-site uses get_agent_client(journey, ...), which picks a backend per journey
-(mock or api) and never falls back to the mock when the live backend is
-misconfigured. The site never calls AWS itself.
+Configuration errors never fall back to the mock. The site never calls AWS itself.
 """
 
-import os
-
 from ..config import ConfigError
-from .contracts import AgentClient
-from .mock import MockClient
-
-
-def get_client() -> AgentClient:
-    mode = os.getenv("ACCEPTMATCH_BACKEND", "mock").strip().lower()
-    if mode == "mock":
-        return MockClient()
-    raise RuntimeError(
-        f"Backend '{mode}' is not available yet. The live agent adapter is pending agreement "
-        "with the backend owner. Unset ACCEPTMATCH_BACKEND or set it to 'mock'."
-    )
 
 
 def get_agent_client(journey: str, settings, overlay):
